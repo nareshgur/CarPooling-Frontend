@@ -1,0 +1,258 @@
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
+// Mock base query for demo purposes
+const baseQuery = fetchBaseQuery({
+  baseUrl: '/api',
+  prepareHeaders: (headers, { getState }) => {
+    const token = getState().auth.token;
+    if (token) {
+      headers.set('authorization', `Bearer ${token}`);
+    }
+    return headers;
+  },
+});
+
+// Mock data for demo
+const mockRides = [
+  {
+    id: '1',
+    driverId: 'user1',
+    driver: {
+      id: 'user1',
+      name: 'John Doe',
+      email: 'john@example.com',
+      phone: '+1234567890',
+      rating: 4.8,
+      totalTrips: 45,
+      verificationStatus: 'verified'
+    },
+    vehicleId: 'vehicle1',
+    vehicle: {
+      id: 'vehicle1',
+      type: 'car',
+      make: 'Toyota',
+      model: 'Camry',
+      year: 2022,
+      color: 'Blue',
+      licensePlate: 'ABC123',
+      features: ['AC', 'Bluetooth', 'USB Charging']
+    },
+    from: {
+      id: 'loc1',
+      name: 'New York',
+      address: '123 Main St, New York, NY',
+      coordinates: { lat: 40.7128, lng: -74.0060 }
+    },
+    to: {
+      id: 'loc2',
+      name: 'Boston',
+      address: '456 Park Ave, Boston, MA',
+      coordinates: { lat: 42.3601, lng: -71.0589 }
+    },
+    departureTime: '2024-12-20T09:00:00Z',
+    arrivalTime: '2024-12-20T13:00:00Z',
+    availableSeats: 3,
+    pricePerSeat: 25,
+    description: 'Comfortable ride with good music!',
+    status: 'active',
+    bookings: [],
+    createdAt: '2024-12-19T10:00:00Z',
+    route: {
+      distance: 350,
+      duration: 240
+    }
+  },
+  {
+    id: '2',
+    driverId: 'user2',
+    driver: {
+      id: 'user2',
+      name: 'Sarah Chen',
+      email: 'sarah@example.com',
+      phone: '+1234567891',
+      rating: 4.9,
+      totalTrips: 28,
+      verificationStatus: 'verified'
+    },
+    vehicleId: 'vehicle2',
+    vehicle: {
+      id: 'vehicle2',
+      type: 'bike',
+      make: 'Yamaha',
+      model: 'MT-07',
+      year: 2021,
+      color: 'Black',
+      licensePlate: 'XYZ789',
+      features: ['Helmet Provided', 'Storage Box']
+    },
+    from: {
+      id: 'loc3',
+      name: 'San Francisco',
+      address: '789 Mission St, San Francisco, CA',
+      coordinates: { lat: 37.7749, lng: -122.4194 }
+    },
+    to: {
+      id: 'loc4',
+      name: 'Los Angeles',
+      address: '321 Sunset Blvd, Los Angeles, CA',
+      coordinates: { lat: 34.0522, lng: -118.2437 }
+    },
+    departureTime: '2024-12-21T08:00:00Z',
+    arrivalTime: '2024-12-21T14:30:00Z',
+    availableSeats: 1,
+    pricePerSeat: 40,
+    description: 'Scenic coastal route, experienced rider',
+    status: 'active',
+    bookings: [],
+    createdAt: '2024-12-19T11:00:00Z',
+    route: {
+      distance: 560,
+      duration: 390
+    }
+  }
+];
+
+export const api = createApi({
+  reducerPath: 'api',
+  baseQuery: async (args, api, extraOptions) => {
+    // Mock implementation for demo
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const { url, method = 'GET', body } = args;
+    
+    if (url === '/rides' && method === 'GET') {
+      return { data: mockRides };
+    }
+    
+    if (url.startsWith('/rides/') && method === 'GET') {
+      const rideId = url.split('/')[2];
+      const ride = mockRides.find(r => r.id === rideId);
+      return ride ? { data: ride } : { error: { status: 404 } };
+    }
+    
+    if (url === '/rides' && method === 'POST') {
+      const newRide = {
+        id: Date.now().toString(),
+        ...body,
+        status: 'active',
+        bookings: [],
+        createdAt: new Date().toISOString()
+      };
+      mockRides.push(newRide);
+      return { data: newRide };
+    }
+    
+    return { error: { status: 404 } };
+  },
+  tagTypes: ['Ride', 'Booking', 'User', 'Vehicle'],
+  endpoints: (builder) => ({
+    // Rides endpoints
+    getRides: builder.query({
+      query: (filters) => ({
+        url: '/rides',
+        params: filters,
+      }),
+      providesTags: ['Ride'],
+    }),
+    
+    getRideById: builder.query({
+      query: (id) => `/rides/${id}`,
+      providesTags: (result, error, id) => [{ type: 'Ride', id }],
+    }),
+    
+    createRide: builder.mutation({
+      query: (rideData) => ({
+        url: '/rides',
+        method: 'POST',
+        body: rideData,
+      }),
+      invalidatesTags: ['Ride'],
+    }),
+    
+    updateRide: builder.mutation({
+      query: ({ id, updates }) => ({
+        url: `/rides/${id}`,
+        method: 'PATCH',
+        body: updates,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: 'Ride', id }],
+    }),
+    
+    deleteRide: builder.mutation({
+      query: (id) => ({
+        url: `/rides/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Ride'],
+    }),
+    
+    // Bookings endpoints
+    createBooking: builder.mutation({
+      query: (bookingData) => ({
+        url: '/bookings',
+        method: 'POST',
+        body: bookingData,
+      }),
+      invalidatesTags: ['Booking', 'Ride'],
+    }),
+    
+    getUserBookings: builder.query({
+      query: (userId) => `/users/${userId}/bookings`,
+      providesTags: ['Booking'],
+    }),
+    
+    updateBookingStatus: builder.mutation({
+      query: ({ id, status }) => ({
+        url: `/bookings/${id}/status`,
+        method: 'PATCH',
+        body: { status },
+      }),
+      invalidatesTags: ['Booking', 'Ride'],
+    }),
+    
+    // Users endpoints
+    getUserProfile: builder.query({
+      query: (id) => `/users/${id}`,
+      providesTags: (result, error, id) => [{ type: 'User', id }],
+    }),
+    
+    updateUserProfile: builder.mutation({
+      query: ({ id, updates }) => ({
+        url: `/users/${id}`,
+        method: 'PATCH',
+        body: updates,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: 'User', id }],
+    }),
+    
+    // Vehicles endpoints
+    getUserVehicles: builder.query({
+      query: (userId) => `/users/${userId}/vehicles`,
+      providesTags: ['Vehicle'],
+    }),
+    
+    addVehicle: builder.mutation({
+      query: (vehicleData) => ({
+        url: '/vehicles',
+        method: 'POST',
+        body: vehicleData,
+      }),
+      invalidatesTags: ['Vehicle'],
+    }),
+  }),
+});
+
+export const {
+  useGetRidesQuery,
+  useGetRideByIdQuery,
+  useCreateRideMutation,
+  useUpdateRideMutation,
+  useDeleteRideMutation,
+  useCreateBookingMutation,
+  useGetUserBookingsQuery,
+  useUpdateBookingStatusMutation,
+  useGetUserProfileQuery,
+  useUpdateUserProfileMutation,
+  useGetUserVehiclesQuery,
+  useAddVehicleMutation,
+} = api;

@@ -1,97 +1,55 @@
-import React, { useState, useMemo } from 'react';
-import { Search as SearchIcon, Filter, MapPin, Calendar, Users, Car, Bike, SlidersHorizontal } from 'lucide-react';
-import { useGetRidesQuery } from '../store/slices/api';
-import RideCard from '../components/UI/RideCard';
-import Button from '../components/UI/Button';
-import Input from '../components/UI/Input';
-import Card from '../components/UI/Card';
+import React, { useState } from "react";
+import {
+  Search as SearchIcon,
+  MapPin,
+  Calendar,
+  Users,
+  Car,
+  Bike,
+  SlidersHorizontal,
+} from "lucide-react";
+import {
+  useLazyGetRidesQuery, // <-- lazy query
+} from "../store/slices/api";
+import RideCard from "../components/UI/RideCard";
+import Button from "../components/UI/Button";
+import Input from "../components/UI/Input";
+import Card from "../components/UI/Card";
 
 export default function Search() {
   const [filters, setFilters] = useState({
-    vehicleType: 'all',
-    sortBy: 'departure',
+    vehicleType: "all",
+    sortBy: "departure",
+    maxPrice: undefined,
   });
-  
+
   const [searchForm, setSearchForm] = useState({
-    from: '',
-    to: '',
-    date: '',
+    from: "",
+    to: "",
+    date: "",
     passengers: 1,
   });
-  
+
   const [showFilters, setShowFilters] = useState(false);
-  
-  const { data: rides = [], isLoading, error } = useGetRidesQuery(filters);
 
-  const filteredRides = useMemo(() => {
-    let result = [...rides];
-    
-    // Apply search filters
-    if (searchForm.from) {
-      result = result.filter(ride => 
-        ride.from.name.toLowerCase().includes(searchForm.from.toLowerCase())
-      );
-    }
-    
-    if (searchForm.to) {
-      result = result.filter(ride => 
-        ride.to.name.toLowerCase().includes(searchForm.to.toLowerCase())
-      );
-    }
-    
-    if (searchForm.date) {
-      const searchDate = new Date(searchForm.date).toDateString();
-      result = result.filter(ride => 
-        new Date(ride.departureTime).toDateString() === searchDate
-      );
-    }
-    
-    if (searchForm.passengers > 1) {
-      result = result.filter(ride => ride.availableSeats >= searchForm.passengers);
-    }
-
-    // Apply vehicle type filter
-    if (filters.vehicleType && filters.vehicleType !== 'all') {
-      result = result.filter(ride => ride.vehicle.type === filters.vehicleType);
-    }
-
-    // Apply price filter
-    if (filters.maxPrice) {
-      result = result.filter(ride => ride.pricePerSeat <= filters.maxPrice);
-    }
-
-    // Apply sorting
-    result.sort((a, b) => {
-      switch (filters.sortBy) {
-        case 'price':
-          return a.pricePerSeat - b.pricePerSeat;
-        case 'departure':
-          return new Date(a.departureTime).getTime() - new Date(b.departureTime).getTime();
-        case 'duration':
-          return (a.route?.duration || 0) - (b.route?.duration || 0);
-        case 'rating':
-          return b.driver.rating - a.driver.rating;
-        default:
-          return 0;
-      }
-    });
-
-    return result;
-  }, [rides, searchForm, filters]);
+  const [triggerSearch, { data: rides = [], isFetching, error }] =
+    useLazyGetRidesQuery();
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // Search logic is handled by the filteredRides useMemo
+    // Send all search form & filter data to backend
+    triggerSearch({
+      ...searchForm,
+      ...filters,
+    });
   };
 
   const handleBookRide = (ride) => {
-    // Implement booking logic
-    console.log('Booking ride:', ride);
+    console.log("Booking ride:", ride);
   };
 
   const handleViewRide = (ride) => {
-    // Navigate to ride details
-    console.log('Viewing ride:', ride);
+    console.log("Viewing ride:", ride);
   };
 
   return (
@@ -116,29 +74,35 @@ export default function Search() {
                 placeholder="Departure city"
                 icon={MapPin}
                 value={searchForm.from}
-                onChange={(e) => setSearchForm(prev => ({ ...prev, from: e.target.value }))}
+                onChange={(e) =>
+                  setSearchForm((prev) => ({ ...prev, from: e.target.value }))
+                }
                 fullWidth
               />
-              
+
               <Input
                 label="To"
                 placeholder="Destination city"
                 icon={MapPin}
                 value={searchForm.to}
-                onChange={(e) => setSearchForm(prev => ({ ...prev, to: e.target.value }))}
+                onChange={(e) =>
+                  setSearchForm((prev) => ({ ...prev, to: e.target.value }))
+                }
                 fullWidth
               />
-              
+
               <Input
                 label="Date"
                 type="date"
                 icon={Calendar}
                 value={searchForm.date}
-                onChange={(e) => setSearchForm(prev => ({ ...prev, date: e.target.value }))}
-                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) =>
+                  setSearchForm((prev) => ({ ...prev, date: e.target.value }))
+                }
+                min={new Date().toISOString().split("T")[0]}
                 fullWidth
               />
-              
+
               <Input
                 label="Passengers"
                 type="number"
@@ -146,21 +110,26 @@ export default function Search() {
                 max="8"
                 icon={Users}
                 value={searchForm.passengers}
-                onChange={(e) => setSearchForm(prev => ({ ...prev, passengers: parseInt(e.target.value) }))}
+                onChange={(e) =>
+                  setSearchForm((prev) => ({
+                    ...prev,
+                    passengers: parseInt(e.target.value),
+                  }))
+                }
                 fullWidth
               />
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                type="submit" 
-                icon={SearchIcon} 
+              <Button
+                type="submit"
+                icon={SearchIcon}
                 size="lg"
                 className="flex-1"
               >
                 Search Rides
               </Button>
-              
+
               <Button
                 type="button"
                 variant="outline"
@@ -168,7 +137,7 @@ export default function Search() {
                 onClick={() => setShowFilters(!showFilters)}
                 className="sm:w-auto"
               >
-                {showFilters ? 'Hide' : 'Show'} Filters
+                {showFilters ? "Hide" : "Show"} Filters
               </Button>
             </div>
 
@@ -176,8 +145,10 @@ export default function Search() {
             {showFilters && (
               <Card className="bg-gray-50" padding="md">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900">Advanced Filters</h3>
-                  
+                  <h3 className="font-semibold text-gray-900">
+                    Advanced Filters
+                  </h3>
+
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -185,10 +156,12 @@ export default function Search() {
                       </label>
                       <select
                         value={filters.vehicleType}
-                        onChange={(e) => setFilters(prev => ({ 
-                          ...prev, 
-                          vehicleType: e.target.value 
-                        }))}
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            vehicleType: e.target.value,
+                          }))
+                        }
                         className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       >
                         <option value="all">All Vehicles</option>
@@ -196,7 +169,7 @@ export default function Search() {
                         <option value="bike">Bikes Only</option>
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Max Price per Seat
@@ -204,25 +177,31 @@ export default function Search() {
                       <input
                         type="number"
                         placeholder="Any price"
-                        value={filters.maxPrice || ''}
-                        onChange={(e) => setFilters(prev => ({ 
-                          ...prev, 
-                          maxPrice: e.target.value ? parseInt(e.target.value) : undefined 
-                        }))}
+                        value={filters.maxPrice || ""}
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            maxPrice: e.target.value
+                              ? parseInt(e.target.value)
+                              : undefined,
+                          }))
+                        }
                         className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Sort By
                       </label>
                       <select
                         value={filters.sortBy}
-                        onChange={(e) => setFilters(prev => ({ 
-                          ...prev, 
-                          sortBy: e.target.value 
-                        }))}
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            sortBy: e.target.value,
+                          }))
+                        }
                         className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       >
                         <option value="departure">Departure Time</option>
@@ -241,34 +220,40 @@ export default function Search() {
         {/* Vehicle Type Tabs */}
         <div className="flex justify-center space-x-4">
           <button
-            onClick={() => setFilters(prev => ({ ...prev, vehicleType: 'all' }))}
+            onClick={() =>
+              setFilters((prev) => ({ ...prev, vehicleType: "all" }))
+            }
             className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
-              filters.vehicleType === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+              filters.vehicleType === "all"
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
             }`}
           >
             <span>All Rides</span>
           </button>
-          
+
           <button
-            onClick={() => setFilters(prev => ({ ...prev, vehicleType: 'car' }))}
+            onClick={() =>
+              setFilters((prev) => ({ ...prev, vehicleType: "car" }))
+            }
             className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
-              filters.vehicleType === 'car'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+              filters.vehicleType === "car"
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
             }`}
           >
             <Car className="h-4 w-4" />
             <span>Cars</span>
           </button>
-          
+
           <button
-            onClick={() => setFilters(prev => ({ ...prev, vehicleType: 'bike' }))}
+            onClick={() =>
+              setFilters((prev) => ({ ...prev, vehicleType: "bike" }))
+            }
             className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
-              filters.vehicleType === 'bike'
-                ? 'bg-green-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+              filters.vehicleType === "bike"
+                ? "bg-green-600 text-white"
+                : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
             }`}
           >
             <Bike className="h-4 w-4" />
@@ -280,20 +265,22 @@ export default function Search() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-gray-900">
-              {filteredRides.length} rides found
+              {rides.length} rides found
             </h2>
-            
-            {filteredRides.length > 0 && (
+            {rides.length > 0 && (
               <div className="flex items-center space-x-2 text-sm text-gray-500">
                 <span>Sorted by {filters.sortBy}</span>
               </div>
             )}
           </div>
 
-          {isLoading ? (
+          {isFetching ? (
             <div className="grid gap-6">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white p-6 rounded-xl border animate-pulse">
+                <div
+                  key={i}
+                  className="bg-white p-6 rounded-xl border animate-pulse"
+                >
                   <div className="space-y-4">
                     <div className="flex justify-between">
                       <div className="flex space-x-3">
@@ -315,12 +302,12 @@ export default function Search() {
             </div>
           ) : error ? (
             <Card className="text-center py-12">
-              <p className="text-red-600 mb-4">Failed to load rides. Please try again.</p>
-              <Button onClick={() => window.location.reload()}>
-                Retry
-              </Button>
+              <p className="text-red-600 mb-4">
+                Failed to load rides. Please try again.
+              </p>
+              <Button onClick={handleSearch}>Retry</Button>
             </Card>
-          ) : filteredRides.length === 0 ? (
+          ) : rides.length === 0 ? (
             <Card className="text-center py-12">
               <div className="space-y-4">
                 <SearchIcon className="h-16 w-16 text-gray-400 mx-auto" />
@@ -329,17 +316,23 @@ export default function Search() {
                     No rides found
                   </h3>
                   <p className="text-gray-600">
-                    Try adjusting your search criteria or check back later for new rides.
+                    Try adjusting your search criteria or check back later for
+                    new rides.
                   </p>
                 </div>
-                <Button variant="outline" onClick={() => setFilters({ sortBy: 'departure' })}>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setFilters({ sortBy: "departure", vehicleType: "all" })
+                  }
+                >
                   Clear Filters
                 </Button>
               </div>
             </Card>
           ) : (
             <div className="grid gap-6">
-              {filteredRides.map((ride) => (
+              {rides.map((ride) => (
                 <RideCard
                   key={ride.id}
                   ride={ride}

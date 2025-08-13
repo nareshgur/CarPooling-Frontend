@@ -16,6 +16,7 @@ import Button from "../components/UI/Button";
 import Input from "../components/UI/Input";
 import Card from "../components/UI/Card";
 import { useCreateRideMutation } from "../store/slices/api";
+
 export default function Publish() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
@@ -39,6 +40,14 @@ export default function Publish() {
     availableSeats: 3,
     pricePerSeat: 0,
     description: "",
+    // Add vehicle information fields
+    vehicleInfo: {
+      make: "",
+      model: "",
+      plateNumber: "",
+      year: "",
+      color: "",
+    },
   });
 
   const handleSubmit = async (e) => {
@@ -78,9 +87,11 @@ export default function Publish() {
         pricePerSeat: form.pricePerSeat,
         description: form.description || undefined,
         vechileInfo: {
-          make: "Toyota",
-          model: "Corolla",
-          plateNumber: "ABC124",
+          make: form.vehicleInfo.make,
+          model: form.vehicleInfo.model,
+          plateNumber: form.vehicleInfo.plateNumber,
+          year: form.vehicleInfo.year,
+          color: form.vehicleInfo.color,
           VechileType: form.vechileType,
         },
       };
@@ -91,21 +102,45 @@ export default function Publish() {
       });
     } catch (error) {
       console.error("Failed to create ride:", error);
+      
+      // Handle specific error types
+      if (error.status === 400 && error.data?.message) {
+        // Backend validation error
+        alert(`Error: ${error.data.message}`);
+      } else if (error.status === 409) {
+        // Duplicate key error (plate number already exists)
+        alert("Error: A vehicle with this license plate number already exists. Please use a different plate number.");
+      } else if (error.status === 401) {
+        // Unauthorized
+        alert("Error: Please log in to publish a ride.");
+      } else if (error.status === 422) {
+        // Validation error
+        alert("Error: Please check your input and try again.");
+      } else {
+        // Generic error
+        alert("Failed to create ride. Please try again.");
+      }
     }
   };
 
-  const nextStep = () => setStep((prev) => Math.min(prev + 1, 4));
+  const nextStep = () => setStep((prev) => Math.min(prev + 1, 5)); // Increased to 5 steps
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
   const isStepValid = (stepNumber) => {
     switch (stepNumber) {
       case 1:
-        return form.vehicleType && form.from.name && form.to.name;
+        return form.vechileType && form.from.name && form.to.name;
       case 2:
-        return form.departureDate && form.departureTime;
+        return form.vehicleInfo.make && 
+               form.vehicleInfo.model && 
+               form.vehicleInfo.plateNumber && 
+               form.vehicleInfo.year && 
+               form.vehicleInfo.color;
       case 3:
-        return form.availableSeats > 0 && form.pricePerSeat > 0;
+        return form.departureDate && form.departureTime;
       case 4:
+        return form.availableSeats > 0 && form.pricePerSeat > 0;
+      case 5:
         return true; // Description is optional
       default:
         return false;
@@ -121,41 +156,50 @@ export default function Publish() {
             Publish Your Ride
           </h1>
           <p className="text-xl text-gray-600">
-            Share your journey and help others travel smart
+            Share your journey and earn money while helping others travel
           </p>
         </div>
 
-        {/* Progress Bar */}
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div
-            className="bg-gradient-to-r from-blue-600 to-green-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${(step / 4) * 100}%` }}
-          ></div>
+        {/* Progress Steps */}
+        <div className="flex items-center justify-center space-x-4">
+          {[1, 2, 3, 4, 5].map((stepNumber) => (
+            <div
+              key={stepNumber}
+              className={`flex items-center space-x-2 ${
+                stepNumber <= step
+                  ? "text-blue-600"
+                  : "text-gray-400"
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  stepNumber <= step
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
+                {stepNumber}
+              </div>
+              <span className="hidden sm:block text-sm font-medium">
+                {stepNumber === 1 && "Route"}
+                {stepNumber === 2 && "Vehicle"}
+                {stepNumber === 3 && "Schedule"}
+                {stepNumber === 4 && "Pricing"}
+                {stepNumber === 5 && "Details"}
+              </span>
+            </div>
+          ))}
         </div>
 
-        <div className="flex justify-between text-sm text-gray-500 mb-8">
-          <span className={step >= 1 ? "text-blue-600 font-medium" : ""}>
-            Route
-          </span>
-          <span className={step >= 2 ? "text-blue-600 font-medium" : ""}>
-            Time
-          </span>
-          <span className={step >= 3 ? "text-blue-600 font-medium" : ""}>
-            Details
-          </span>
-          <span className={step >= 4 ? "text-blue-600 font-medium" : ""}>
-            Review
-          </span>
-        </div>
-
+        {/* Form */}
         <Card>
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Step 1: Route & Vehicle */}
+            {/* Step 1: Route */}
             {step === 1 && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-semibold text-gray-900 flex items-center space-x-2">
                   <MapPin className="h-6 w-6" />
-                  <span>Route & Vehicle</span>
+                  <span>Route Details</span>
                 </h2>
 
                 {/* Vehicle Type Selection */}
@@ -167,10 +211,10 @@ export default function Publish() {
                     <button
                       type="button"
                       onClick={() =>
-                        setForm((prev) => ({ ...prev, vehicleType: "car" }))
+                        setForm((prev) => ({ ...prev, vechileType: "car" }))
                       }
                       className={`p-6 rounded-xl border-2 transition-all ${
-                        form.vehicleType === "car"
+                        form.vechileType === "car"
                           ? "border-blue-600 bg-blue-50 text-blue-700"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
@@ -187,10 +231,10 @@ export default function Publish() {
                     <button
                       type="button"
                       onClick={() =>
-                        setForm((prev) => ({ ...prev, vehicleType: "bike" }))
+                        setForm((prev) => ({ ...prev, vechileType: "bike" }))
                       }
                       className={`p-6 rounded-xl border-2 transition-all ${
-                        form.vehicleType === "bike"
+                        form.vechileType === "bike"
                           ? "border-green-600 bg-green-50 text-green-700"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
@@ -253,15 +297,126 @@ export default function Publish() {
               </div>
             )}
 
-            {/* Step 2: Date & Time */}
+            {/* Step 2: Vehicle Information */}
             {step === 2 && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-semibold text-gray-900 flex items-center space-x-2">
-                  <Calendar className="h-6 w-6" />
-                  <span>When are you leaving?</span>
+                  <Car className="h-6 w-6" />
+                  <span>Vehicle Information</span>
                 </h2>
 
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Input
+                    label="Vehicle Make"
+                    placeholder="e.g., Toyota, Honda, Yamaha"
+                    value={form.vehicleInfo.make}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vehicleInfo: {
+                          ...prev.vehicleInfo,
+                          make: e.target.value,
+                        },
+                      }))
+                    }
+                    fullWidth
+                    required
+                  />
+
+                  <Input
+                    label="Vehicle Model"
+                    placeholder="e.g., Camry, Civic, R15"
+                    value={form.vehicleInfo.model}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vehicleInfo: {
+                          ...prev.vehicleInfo,
+                          model: e.target.value,
+                        },
+                      }))
+                    }
+                    fullWidth
+                    required
+                  />
+
+                  <Input
+                    label="License Plate Number"
+                    placeholder="e.g., ABC123"
+                    value={form.vehicleInfo.plateNumber}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vehicleInfo: {
+                          ...prev.vehicleInfo,
+                          plateNumber: e.target.value.toUpperCase(),
+                        },
+                      }))
+                    }
+                    fullWidth
+                    required
+                  />
+
+                  <Input
+                    label="Vehicle Year"
+                    type="number"
+                    min="1900"
+                    max={new Date().getFullYear() + 1}
+                    placeholder="e.g., 2022"
+                    value={form.vehicleInfo.year}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vehicleInfo: {
+                          ...prev.vehicleInfo,
+                          year: e.target.value,
+                        },
+                      }))
+                    }
+                    fullWidth
+                    required
+                  />
+
+                  <Input
+                    label="Vehicle Color"
+                    placeholder="e.g., Blue, Red, Black"
+                    value={form.vehicleInfo.color}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vehicleInfo: {
+                          ...prev.vehicleInfo,
+                          color: e.target.value,
+                        },
+                      }))
+                    }
+                    fullWidth
+                    required
+                  />
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">
+                    Vehicle Information Tips
+                  </h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• Ensure your license plate number is correct and unique</li>
+                    <li>• Provide accurate vehicle details for passenger safety</li>
+                    <li>• This information helps passengers identify your vehicle</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Schedule */}
+            {step === 3 && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold text-gray-900 flex items-center space-x-2">
+                  <Calendar className="h-6 w-6" />
+                  <span>Schedule</span>
+                </h2>
+
+                <div className="grid md:grid-cols-2 gap-4">
                   <Input
                     label="Departure Date"
                     type="date"
@@ -293,15 +448,26 @@ export default function Publish() {
                     required
                   />
                 </div>
+
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-yellow-900 mb-2">
+                    Schedule Tips
+                  </h4>
+                  <ul className="text-sm text-yellow-700 space-y-1">
+                    <li>• Choose a date at least 24 hours in advance</li>
+                    <li>• Consider traffic patterns for departure time</li>
+                    <li>• Be flexible with pickup times for better bookings</li>
+                  </ul>
+                </div>
               </div>
             )}
 
-            {/* Step 3: Seats & Price */}
-            {step === 3 && (
+            {/* Step 4: Pricing */}
+            {step === 4 && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-semibold text-gray-900 flex items-center space-x-2">
-                  <Users className="h-6 w-6" />
-                  <span>Seats & Pricing</span>
+                  <DollarSign className="h-6 w-6" />
+                  <span>Pricing</span>
                 </h2>
 
                 <div className="grid md:grid-cols-2 gap-6">
@@ -335,7 +501,7 @@ export default function Publish() {
                           setForm((prev) => ({
                             ...prev,
                             availableSeats: Math.min(
-                              form.vehicleType === "bike" ? 1 : 8,
+                              form.vechileType === "bike" ? 1 : 8,
                               prev.availableSeats + 1
                             ),
                           }))
@@ -343,14 +509,14 @@ export default function Publish() {
                         className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50"
                         disabled={
                           form.availableSeats >=
-                          (form.vehicleType === "bike" ? 1 : 8)
+                          (form.vechileType === "bike" ? 1 : 8)
                         }
                       >
                         +
                       </button>
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
-                      {form.vehicleType === "bike"
+                      {form.vechileType === "bike"
                         ? "Maximum 1 passenger for motorcycles"
                         : "Maximum 8 passengers"}
                     </p>
@@ -388,8 +554,8 @@ export default function Publish() {
               </div>
             )}
 
-            {/* Step 4: Description & Review */}
-            {step === 4 && (
+            {/* Step 5: Description & Review */}
+            {step === 5 && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-semibold text-gray-900 flex items-center space-x-2">
                   <FileText className="h-6 w-6" />
@@ -427,45 +593,40 @@ export default function Publish() {
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">Vehicle:</span>
                       <div className="flex items-center space-x-2">
-                        {form.vehicleType === "car" ? (
+                        {form.vechileType === "car" ? (
                           <Car className="h-4 w-4" />
                         ) : (
                           <Bike className="h-4 w-4" />
                         )}
-                        <span className="capitalize">{form.vehicleType}</span>
+                        <span className="capitalize">{form.vechileType}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Vehicle Details:</span>
+                      <span className="text-gray-900">
+                        {form.vehicleInfo.make} {form.vehicleInfo.model} ({form.vehicleInfo.plateNumber})
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
                       <span className="text-gray-600">Route:</span>
-                      <span>
+                      <span className="text-gray-900">
                         {form.from.name} → {form.to.name}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Departure:</span>
-                      <span>
+                      <span className="text-gray-600">Date & Time:</span>
+                      <span className="text-gray-900">
                         {form.departureDate} at {form.departureTime}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Available Seats:</span>
-                      <span>{form.availableSeats}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Price per Seat:</span>
-                      <span className="text-green-600 font-semibold">
-                        ${form.pricePerSeat}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between font-semibold text-lg pt-2 border-t border-gray-200">
-                      <span>Total Potential Earnings:</span>
-                      <span className="text-green-600">
-                        ${form.pricePerSeat * form.availableSeats}
+                      <span className="text-gray-600">Seats & Price:</span>
+                      <span className="text-gray-900">
+                        {form.availableSeats} seats at ${form.pricePerSeat} each
                       </span>
                     </div>
                   </div>
@@ -473,36 +634,34 @@ export default function Publish() {
               </div>
             )}
 
-            {/* Navigation Buttons */}
-            <div className="flex justify-between pt-6 border-t border-gray-200">
-              <div>
-                {step > 1 && (
-                  <Button type="button" variant="outline" onClick={prevStep}>
-                    Previous
-                  </Button>
-                )}
-              </div>
+            {/* Navigation */}
+            <div className="flex justify-between pt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={prevStep}
+                disabled={step === 1}
+              >
+                Previous
+              </Button>
 
-              <div>
-                {step < 4 ? (
-                  <Button
-                    type="button"
-                    onClick={nextStep}
-                    disabled={!isStepValid(step)}
-                  >
-                    Next
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    icon={Plus}
-                    loading={isLoading}
-                    disabled={!isStepValid(step)}
-                  >
-                    Publish Ride
-                  </Button>
-                )}
-              </div>
+              {step < 5 ? (
+                <Button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={!isStepValid(step)}
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={isLoading || !isStepValid(step)}
+                  className="min-w-[120px]"
+                >
+                  {isLoading ? "Publishing..." : "Publish Ride"}
+                </Button>
+              )}
             </div>
           </form>
         </Card>

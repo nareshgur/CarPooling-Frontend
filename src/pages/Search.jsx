@@ -9,12 +9,15 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import {
-  useLazyGetRidesQuery, // <-- lazy query
+  useLazyGetRidesQuery,
 } from "../store/slices/api";
 import RideCard from "../components/UI/RideCard";
 import Button from "../components/UI/Button";
 import Input from "../components/UI/Input";
 import Card from "../components/UI/Card";
+import LocationAutocomplete from "../components/UI/LocationAutocomplete";
+import MapSelector from "../components/UI/MapSelector";
+import { isLocationTooGeneral, getLocationSuggestion } from "../utils/locationValidator";
 
 export default function Search() {
   const [filters, setFilters] = useState({
@@ -31,17 +34,70 @@ export default function Search() {
   });
 
   const [showFilters, setShowFilters] = useState(false);
+  const [showMapSelector, setShowMapSelector] = useState(false);
+  const [mapSelectorFor, setMapSelectorFor] = useState(null);
+  const [locationWarnings, setLocationWarnings] = useState({ from: null, to: null });
+  const [selectedLocations, setSelectedLocations] = useState({ from: null, to: null });
 
   const [triggerSearch, { data: rides = [], isFetching, error }] =
     useLazyGetRidesQuery();
 
+  // Handle location selection
+  const handleLocationSelect = (field, location) => {
+    if (!location) {
+      setSearchForm(prev => ({ ...prev, [field]: "" }));
+      setSelectedLocations(prev => ({ ...prev, [field]: null }));
+      setLocationWarnings(prev => ({ ...prev, [field]: null }));
+      return;
+    }
+
+    setSearchForm(prev => ({ ...prev, [field]: location.name }));
+    setSelectedLocations(prev => ({ ...prev, [field]: location }));
+
+    // Check if location is too general
+    if (isLocationTooGeneral(location)) {
+      const suggestion = getLocationSuggestion(location);
+      setLocationWarnings(prev => ({ ...prev, [field]: suggestion }));
+    } else {
+      setLocationWarnings(prev => ({ ...prev, [field]: null }));
+    }
+  };
+
+  // Handle map selection
+  const handleMapSelection = (location) => {
+    if (mapSelectorFor) {
+      handleLocationSelect(mapSelectorFor, location);
+    }
+    setShowMapSelector(false);
+    setMapSelectorFor(null);
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
-    // Send all search form & filter data to backend
-    triggerSearch({
+    
+    // Prepare search data with coordinates
+    const searchData = {
       ...searchForm,
       ...filters,
-    });
+    };
+
+    // Add coordinates if available
+    if (selectedLocations.from && selectedLocations.from.coordinates) {
+      searchData.lat = selectedLocations.from.coordinates.lat;
+      searchData.lng = selectedLocations.from.coordinates.lng;
+      searchData.maxDistance = 50000; // 50km radius
+    }
+
+    if (selectedLocations.to && selectedLocations.to.coordinates) {
+      searchData.destLat = selectedLocations.to.coordinates.lat;
+      searchData.destLng = selectedLocations.to.coordinates.lng;
+      searchData.destMaxDistance = 50000; // 50km radius
+    }
+
+    console.log("Searching with data:", searchData);
+    
+    // Send all search form & filter data to backend
+    triggerSearch(searchData);
   };
 
   const handleBookRide = (ride) => {
@@ -69,27 +125,73 @@ export default function Search() {
         <Card className="sticky top-20 z-40">
           <form onSubmit={handleSearch} className="space-y-6">
             <div className="grid md:grid-cols-4 gap-4">
-              <Input
-                label="From"
-                placeholder="Departure city"
-                icon={MapPin}
-                value={searchForm.from}
-                onChange={(e) =>
-                  setSearchForm((prev) => ({ ...prev, from: e.target.value }))
-                }
-                fullWidth
-              />
+              <div className="space-y-2">
+                <LocationAutocomplete
+                  label="From"
+                  placeholder="Departure location"
+                  value={searchForm.from}
+                  onChange={(e) => setSearchForm(prev => ({ ...prev, from: e.target.value }))}
+                  onLocationSelect={(location) => handleLocationSelect('from', location)}
+                  showCurrentLocation={true}
+                />
+                
+                {locationWarnings.from && (
+                  <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex-shrink-0">
+                      <svg className="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-yellow-800">{locationWarnings.from}</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMapSelectorFor('from');
+                          setShowMapSelector(true);
+                        }}
+                        className="text-xs text-yellow-800 underline hover:text-yellow-900"
+                      >
+                        Select exact location
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-              <Input
-                label="To"
-                placeholder="Destination city"
-                icon={MapPin}
-                value={searchForm.to}
-                onChange={(e) =>
-                  setSearchForm((prev) => ({ ...prev, to: e.target.value }))
-                }
-                fullWidth
-              />
+              <div className="space-y-2">
+                <LocationAutocomplete
+                  label="To"
+                  placeholder="Destination location"
+                  value={searchForm.to}
+                  onChange={(e) => setSearchForm(prev => ({ ...prev, to: e.target.value }))}
+                  onLocationSelect={(location) => handleLocationSelect('to', location)}
+                  showCurrentLocation={true}
+                />
+                
+                {locationWarnings.to && (
+                  <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex-shrink-0">
+                      <svg className="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-yellow-800">{locationWarnings.to}</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMapSelectorFor('to');
+                          setShowMapSelector(true);
+                        }}
+                        className="text-xs text-yellow-800 underline hover:text-yellow-900"
+                      >
+                        Select exact location
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <Input
                 label="Date"
@@ -344,6 +446,19 @@ export default function Search() {
           )}
         </div>
       </div>
+
+      {/* Map Selector Modal */}
+      {showMapSelector && (
+        <MapSelector
+          initialLocation={mapSelectorFor ? selectedLocations[mapSelectorFor] : null}
+          onLocationSelect={handleMapSelection}
+          onClose={() => {
+            setShowMapSelector(false);
+            setMapSelectorFor(null);
+          }}
+          title={`Select Exact ${mapSelectorFor === 'from' ? 'Departure' : 'Destination'} Location`}
+        />
+      )}
     </div>
   );
 }

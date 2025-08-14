@@ -7,7 +7,7 @@ import Button from './Button';
 export default function RideCard({ ride, onBook, onView, showActions = true }) {
   const departureTime = new Date(ride.departureTime);
   const duration = ride.route ? Math.round(ride.route.duration / 60) : 0;
-  
+  console.log("ride", ride);
   return (
     <Card hover={!!onView} onClick={onView}>
       <div className="space-y-4">
@@ -15,7 +15,7 @@ export default function RideCard({ ride, onBook, onView, showActions = true }) {
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
             <div className="bg-gradient-to-r from-blue-500 to-green-500 p-2 rounded-lg">
-              {ride.vehicle.type === 'car' ? (
+              {ride.vehicle?.VechileType === 'car' ? (
                 <Car className="h-5 w-5 text-white" />
               ) : (
                 <Bike className="h-5 w-5 text-white" />
@@ -23,9 +23,9 @@ export default function RideCard({ ride, onBook, onView, showActions = true }) {
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">
-                {ride.vehicle.make} {ride.vehicle.model}
+                {ride.vehicle?.make} {ride.vehicle?.model}
               </h3>
-              <p className="text-sm text-gray-500">{ride.vehicle.color} • {ride.vehicle.year}</p>
+              <p className="text-sm text-gray-500">{ride.vehicle?.color} • {ride.vehicle?.year}</p>
             </div>
           </div>
           
@@ -48,12 +48,12 @@ export default function RideCard({ ride, onBook, onView, showActions = true }) {
             </div>
             <div className="flex-1 space-y-4">
               <div>
-                <p className="font-medium text-gray-900">{ride.from.name}</p>
-                <p className="text-sm text-gray-500">{ride.from.address}</p>
+                <p className="font-medium text-gray-900">{ride.from?.name}</p>
+                <p className="text-sm text-gray-500">{ride.from?.address}</p>
               </div>
               <div>
-                <p className="font-medium text-gray-900">{ride.to.name}</p>
-                <p className="text-sm text-gray-500">{ride.to.address}</p>
+                <p className="font-medium text-gray-900">{ride.to?.name}</p>
+                <p className="text-sm text-gray-500">{ride.to?.address}</p>
               </div>
             </div>
           </div>

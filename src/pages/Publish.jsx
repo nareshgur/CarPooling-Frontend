@@ -16,6 +16,9 @@ import Button from "../components/UI/Button";
 import Input from "../components/UI/Input";
 import Card from "../components/UI/Card";
 import { useCreateRideMutation } from "../store/slices/api";
+import LocationAutocomplete from "../components/UI/LocationAutocomplete";
+import MapSelector from "../components/UI/MapSelector";
+import { isLocationTooGeneral, getLocationSuggestion } from "../utils/locationValidator";
 
 export default function Publish() {
   const navigate = useNavigate();
@@ -50,10 +53,67 @@ export default function Publish() {
     },
   });
 
+  const [showMapSelector, setShowMapSelector] = useState(false);
+  const [mapSelectorFor, setMapSelectorFor] = useState(null); // 'from' or 'to'
+  const [locationWarnings, setLocationWarnings] = useState({ from: null, to: null });
+
+  // Handle location selection
+  const handleLocationSelect = (field, location) => {
+    if (!location) {
+      setForm(prev => ({
+        ...prev,
+        [field]: {
+          name: "",
+          address: "",
+          coordinates: { lat: 0, lng: 0 },
+        }
+      }));
+      setLocationWarnings(prev => ({ ...prev, [field]: null }));
+      return;
+    }
+
+    setForm(prev => ({
+      ...prev,
+      [field]: {
+        name: location.name,
+        address: location.address,
+        coordinates: location.coordinates,
+      }
+    }));
+
+    // Check if location is too general
+    if (isLocationTooGeneral(location)) {
+      const suggestion = getLocationSuggestion(location);
+      setLocationWarnings(prev => ({ ...prev, [field]: suggestion }));
+    } else {
+      setLocationWarnings(prev => ({ ...prev, [field]: null }));
+    }
+  };
+
+  // Handle map selection
+  const handleMapSelection = (location) => {
+    if (mapSelectorFor) {
+      handleLocationSelect(mapSelectorFor, location);
+    }
+    setShowMapSelector(false);
+    setMapSelectorFor(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
+      // Validate that we have coordinates
+      if (!form.from.coordinates.lat || !form.from.coordinates.lng) {
+        alert("Please select a valid departure location with coordinates.");
+        return;
+      }
+
+      if (!form.to.coordinates.lat || !form.to.coordinates.lng) {
+        alert("Please select a valid destination location with coordinates.");
+        return;
+      }
+
       // Create coordinates arrays immutably
       const originCoords = [
         form.from.coordinates.lng,
@@ -96,6 +156,7 @@ export default function Publish() {
         },
       };
 
+      console.log("Submitting ride data:", rideData);
       await createRide(rideData).unwrap();
       navigate("/rides/my-rides", {
         state: { message: "Ride published successfully!" },
@@ -250,48 +311,88 @@ export default function Publish() {
                   </div>
                 </div>
 
-                {/* Route */}
+                {/* Route with Location Autocomplete */}
                 <div className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
-                    <Input
-                      label="From (Departure City)"
-                      placeholder="e.g., New York"
-                      icon={MapPin}
-                      value={form.from.name}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          from: {
-                            ...prev.from,
-                            name: e.target.value,
-                            address: `${e.target.value}, USA`, // Mock address
-                            coordinates: { lat: 40.7128, lng: -74.006 }, // Mock coordinates
-                          },
-                        }))
-                      }
-                      fullWidth
-                      required
-                    />
+                    <div className="space-y-2">
+                      <LocationAutocomplete
+                        label="From (Departure Location)"
+                        placeholder="e.g., 123 Main St, New York"
+                        value={form.from.name}
+                        onChange={(e) => {
+                          setForm(prev => ({
+                            ...prev,
+                            from: { ...prev.from, name: e.target.value }
+                          }));
+                        }}
+                        onLocationSelect={(location) => handleLocationSelect('from', location)}
+                        required
+                        showCurrentLocation={true}
+                      />
+                      
+                      {locationWarnings.from && (
+                        <div className="flex items-start space-x-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-yellow-800">{locationWarnings.from}</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMapSelectorFor('from');
+                                setShowMapSelector(true);
+                              }}
+                              className="mt-1 text-sm text-yellow-800 underline hover:text-yellow-900"
+                            >
+                              Select exact location on map
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-                    <Input
-                      label="To (Destination City)"
-                      placeholder="e.g., Boston"
-                      icon={MapPin}
-                      value={form.to.name}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          to: {
-                            ...prev.to,
-                            name: e.target.value,
-                            address: `${e.target.value}, USA`, // Mock address
-                            coordinates: { lat: 42.3601, lng: -71.0589 }, // Mock coordinates
-                          },
-                        }))
-                      }
-                      fullWidth
-                      required
-                    />
+                    <div className="space-y-2">
+                      <LocationAutocomplete
+                        label="To (Destination Location)"
+                        placeholder="e.g., 456 Oak Ave, Boston"
+                        value={form.to.name}
+                        onChange={(e) => {
+                          setForm(prev => ({
+                            ...prev,
+                            to: { ...prev.to, name: e.target.value }
+                          }));
+                        }}
+                        onLocationSelect={(location) => handleLocationSelect('to', location)}
+                        required
+                        showCurrentLocation={true}
+                      />
+                      
+                      {locationWarnings.to && (
+                        <div className="flex items-start space-x-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-yellow-800">{locationWarnings.to}</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMapSelectorFor('to');
+                                setShowMapSelector(true);
+                              }}
+                              className="mt-1 text-sm text-yellow-800 underline hover:text-yellow-900"
+                            >
+                              Select exact location on map
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -666,6 +767,19 @@ export default function Publish() {
           </form>
         </Card>
       </div>
+
+      {/* Map Selector Modal */}
+      {showMapSelector && (
+        <MapSelector
+          initialLocation={mapSelectorFor ? form[mapSelectorFor] : null}
+          onLocationSelect={handleMapSelection}
+          onClose={() => {
+            setShowMapSelector(false);
+            setMapSelectorFor(null);
+          }}
+          title={`Select Exact ${mapSelectorFor === 'from' ? 'Departure' : 'Destination'} Location`}
+        />
+      )}
     </div>
   );
 }

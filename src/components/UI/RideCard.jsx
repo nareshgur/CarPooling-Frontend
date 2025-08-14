@@ -5,7 +5,8 @@ import Card from './Card';
 import Button from './Button';
 
 export default function RideCard({ ride, onBook, onView, showActions = true }) {
-  const departureTime = new Date(ride.departureTime);
+  const departureTime = new Date(ride.dateTime);
+  console.log("departureTime", departureTime);
   const duration = ride.route ? Math.round(ride.route.duration / 60) : 0;
   console.log("ride", ride);
   return (
@@ -15,7 +16,7 @@ export default function RideCard({ ride, onBook, onView, showActions = true }) {
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
             <div className="bg-gradient-to-r from-blue-500 to-green-500 p-2 rounded-lg">
-              {ride.vehicle?.VechileType === 'car' ? (
+              {ride.vechile.VechileType === 'car' ? (
                 <Car className="h-5 w-5 text-white" />
               ) : (
                 <Bike className="h-5 w-5 text-white" />
@@ -23,9 +24,9 @@ export default function RideCard({ ride, onBook, onView, showActions = true }) {
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">
-                {ride.vehicle?.make} {ride.vehicle?.model}
+                {ride.vechile.make} {ride.vechile.model}
               </h3>
-              <p className="text-sm text-gray-500">{ride.vehicle?.color} • {ride.vehicle?.year}</p>
+              <p className="text-sm text-gray-500">{ride.vechile.color} • {ride.vechile.year}</p>
             </div>
           </div>
           
@@ -48,12 +49,12 @@ export default function RideCard({ ride, onBook, onView, showActions = true }) {
             </div>
             <div className="flex-1 space-y-4">
               <div>
-                <p className="font-medium text-gray-900">{ride.from?.name}</p>
-                <p className="text-sm text-gray-500">{ride.from?.address}</p>
+                <p className="font-medium text-gray-900">{ride.origin.name}</p>
+                <p className="text-sm text-gray-500">{ride.origin.name}</p>
               </div>
               <div>
-                <p className="font-medium text-gray-900">{ride.to?.name}</p>
-                <p className="text-sm text-gray-500">{ride.to?.address}</p>
+                <p className="font-medium text-gray-900">{ride.destination.name}</p>
+                <p className="text-sm text-gray-500">{ride.destination.name}</p>
               </div>
             </div>
           </div>
@@ -90,8 +91,8 @@ export default function RideCard({ ride, onBook, onView, showActions = true }) {
           <div className="flex items-center space-x-2 text-sm text-gray-600">
             <Star className="h-4 w-4 text-yellow-400 fill-current" />
             <div>
-              <p className="font-medium">{ride.driver.rating}</p>
-              <p>{ride.driver.totalTrips} trips</p>
+              {/* <p className="font-medium">{ride.driver.}</p> */}
+              {/* <p>{ride.driver.totalTrips} trips</p> */}
             </div>
           </div>
         </div>
@@ -101,14 +102,14 @@ export default function RideCard({ ride, onBook, onView, showActions = true }) {
           <div className="flex items-center space-x-3">
             <div className="bg-gradient-to-r from-blue-500 to-green-500 p-2 rounded-full">
               <span className="text-white text-sm font-medium">
-                {ride.driver.name.split(' ').map(n => n[0]).join('')}
+                {ride.driverId.name.split(' ').map(n => n[0]).join('')}
               </span>
             </div>
             <div>
-              <p className="font-medium text-gray-900">{ride.driver.name}</p>
+              <p className="font-medium text-gray-900">{ride.driverId.name}</p>
               <div className="flex items-center space-x-1">
                 <span className="text-sm text-gray-500">
-                  {ride.driver.verificationStatus === 'verified' ? '✓ Verified' : 'Unverified'}
+                  {ride.driver?.verificationStatus === 'verified' ? '✓ Verified' : 'Unverified'}
                 </span>
               </div>
             </div>
@@ -133,9 +134,9 @@ export default function RideCard({ ride, onBook, onView, showActions = true }) {
                   e.stopPropagation();
                   onBook(ride);
                 }}
-                disabled={ride.availableSeats === 0}
+                disabled={ride.availableSeats === 0 || ride.availableSeats === null}
               >
-                {ride.availableSeats === 0 ? 'Full' : 'Book'}
+                {ride.availableSeats === 0 || ride.availableSeats === null ? 'Full' : 'Book'}
               </Button>
             </div>
           )}

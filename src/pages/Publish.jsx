@@ -10,6 +10,8 @@ import {
   Bike,
   Plus,
   FileText,
+  X,
+  Route,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import Button from "../components/UI/Button";
@@ -38,12 +40,12 @@ export default function Publish() {
       address: "",
       coordinates: { lat: 0, lng: 0 },
     },
+    stops: [], // Add stops array
     departureDate: "",
     departureTime: "",
     availableSeats: 3,
     pricePerSeat: 0,
     description: "",
-    // Add vehicle information fields
     vehicleInfo: {
       make: "",
       model: "",
@@ -54,8 +56,9 @@ export default function Publish() {
   });
 
   const [showMapSelector, setShowMapSelector] = useState(false);
-  const [mapSelectorFor, setMapSelectorFor] = useState(null); // 'from' or 'to'
+  const [mapSelectorFor, setMapSelectorFor] = useState(null); // 'from', 'to', or 'stop-{index}'
   const [locationWarnings, setLocationWarnings] = useState({ from: null, to: null });
+  const [stopLocationWarnings, setStopLocationWarnings] = useState({});
 
   // Handle location selection
   const handleLocationSelect = (field, location) => {
@@ -90,10 +93,78 @@ export default function Publish() {
     }
   };
 
+  // Handle stop location selection
+  const handleStopLocationSelect = (stopIndex, location) => {
+    if (!location) {
+      setForm(prev => ({
+        ...prev,
+        stops: prev.stops.map((stop, idx) => 
+          idx === stopIndex 
+            ? { name: "", address: "", coordinates: { lat: 0, lng: 0 } }
+            : stop
+        )
+      }));
+      setStopLocationWarnings(prev => ({ ...prev, [stopIndex]: null }));
+      return;
+    }
+
+    setForm(prev => ({
+      ...prev,
+      stops: prev.stops.map((stop, idx) => 
+        idx === stopIndex 
+          ? {
+              name: location.name,
+              address: location.address,
+              coordinates: location.coordinates,
+            }
+          : stop
+      )
+    }));
+
+    // Check if location is too general
+    if (isLocationTooGeneral(location)) {
+      const suggestion = getLocationSuggestion(location);
+      setStopLocationWarnings(prev => ({ ...prev, [stopIndex]: suggestion }));
+    } else {
+      setStopLocationWarnings(prev => ({ ...prev, [stopIndex]: null }));
+    }
+  };
+
+  // Add a new stop
+  const addStop = () => {
+    setForm(prev => ({
+      ...prev,
+      stops: [...prev.stops, {
+        name: "",
+        address: "",
+        coordinates: { lat: 0, lng: 0 },
+      }]
+    }));
+  };
+
+  // Remove a stop
+  const removeStop = (index) => {
+    setForm(prev => ({
+      ...prev,
+      stops: prev.stops.filter((_, idx) => idx !== index)
+    }));
+    // Clear warnings for removed stop
+    setStopLocationWarnings(prev => {
+      const newWarnings = { ...prev };
+      delete newWarnings[index];
+      return newWarnings;
+    });
+  };
+
   // Handle map selection
   const handleMapSelection = (location) => {
     if (mapSelectorFor) {
-      handleLocationSelect(mapSelectorFor, location);
+      if (mapSelectorFor.startsWith('stop-')) {
+        const stopIndex = parseInt(mapSelectorFor.split('-')[1]);
+        handleStopLocationSelect(stopIndex, location);
+      } else {
+        handleLocationSelect(mapSelectorFor, location);
+      }
     }
     setShowMapSelector(false);
     setMapSelectorFor(null);
@@ -114,6 +185,11 @@ export default function Publish() {
         return;
       }
 
+      // Validate stops if any
+      const validStops = form.stops.filter(stop => 
+        stop.name && stop.coordinates.lat && stop.coordinates.lng
+      );
+
       // Create coordinates arrays immutably
       const originCoords = [
         form.from.coordinates.lng,
@@ -124,6 +200,16 @@ export default function Publish() {
         form.to.coordinates.lng,
         form.to.coordinates.lat,
       ];
+
+      // Format stops for backend
+      const formattedStops = validStops.map((stop, index) => ({
+        name: stop.name,
+        location: {
+          type: "Point",
+          coordinates: [stop.coordinates.lng, stop.coordinates.lat],
+        },
+        routeIndex: index + 1, // Position in the route
+      }));
 
       const rideData = {
         origin: {
@@ -140,6 +226,7 @@ export default function Publish() {
             coordinates: destinationCoords,
           },
         },
+        stops: formattedStops, // Add stops to ride data
         dateTime: new Date(
           `${form.departureDate}T${form.departureTime}`
         ).toISOString(),
@@ -166,25 +253,20 @@ export default function Publish() {
       
       // Handle specific error types
       if (error.status === 400 && error.data?.message) {
-        // Backend validation error
         alert(`Error: ${error.data.message}`);
       } else if (error.status === 409) {
-        // Duplicate key error (plate number already exists)
         alert("Error: A vehicle with this license plate number already exists. Please use a different plate number.");
       } else if (error.status === 401) {
-        // Unauthorized
         alert("Error: Please log in to publish a ride.");
       } else if (error.status === 422) {
-        // Validation error
         alert("Error: Please check your input and try again.");
       } else {
-        // Generic error
         alert("Failed to create ride. Please try again.");
       }
     }
   };
 
-  const nextStep = () => setStep((prev) => Math.min(prev + 1, 5)); // Increased to 5 steps
+  const nextStep = () => setStep((prev) => Math.min(prev + 1, 5));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
   const isStepValid = (stepNumber) => {
@@ -393,6 +475,101 @@ export default function Publish() {
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* Stops Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-medium text-gray-700">
+                        <Route className="inline h-4 w-4 mr-2" />
+                        Stops (Optional)
+                      </label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addStop}
+                        className="flex items-center space-x-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Add Stop</span>
+                      </Button>
+                    </div>
+                    
+                    <p className="text-sm text-gray-500">
+                      Add intermediate stops where passengers can be picked up or dropped off
+                    </p>
+
+                    {form.stops.length > 0 && (
+                      <div className="space-y-3">
+                        {form.stops.map((stop, index) => (
+                          <div key={index} className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm font-medium text-gray-700">
+                                  Stop {index + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeStop(index)}
+                                  className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                              
+                              <LocationAutocomplete
+                                placeholder={`e.g., Stop ${index + 1} location`}
+                                value={stop.name}
+                                onChange={(e) => {
+                                  setForm(prev => ({
+                                    ...prev,
+                                    stops: prev.stops.map((s, idx) => 
+                                      idx === index 
+                                        ? { ...s, name: e.target.value }
+                                        : s
+                                    )
+                                  }));
+                                }}
+                                onLocationSelect={(location) => handleStopLocationSelect(index, location)}
+                                showCurrentLocation={false}
+                              />
+                              
+                              {stopLocationWarnings[index] && (
+                                <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                  <div className="flex-shrink-0">
+                                    <svg className="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-yellow-800">{stopLocationWarnings[index]}</p>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setMapSelectorFor(`stop-${index}`);
+                                        setShowMapSelector(true);
+                                      }}
+                                      className="mt-1 text-yellow-800 underline hover:text-yellow-900"
+                                    >
+                                      Select exact location on map
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {form.stops.length === 0 && (
+                      <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                        <Route className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                        <p className="text-sm">No stops added yet</p>
+                        <p className="text-xs">Click "Add Stop" to include intermediate locations</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -717,6 +894,15 @@ export default function Publish() {
                       </span>
                     </div>
 
+                    {form.stops.length > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Stops:</span>
+                        <span className="text-gray-900">
+                          {form.stops.map(stop => stop.name).join(' → ')}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">Date & Time:</span>
                       <span className="text-gray-900">
@@ -771,13 +957,23 @@ export default function Publish() {
       {/* Map Selector Modal */}
       {showMapSelector && (
         <MapSelector
-          initialLocation={mapSelectorFor ? form[mapSelectorFor] : null}
+          initialLocation={mapSelectorFor ? 
+            (mapSelectorFor.startsWith('stop-') ? 
+              form.stops[parseInt(mapSelectorFor.split('-')[1])] : 
+              form[mapSelectorFor]
+            ) : null
+          }
           onLocationSelect={handleMapSelection}
           onClose={() => {
             setShowMapSelector(false);
             setMapSelectorFor(null);
           }}
-          title={`Select Exact ${mapSelectorFor === 'from' ? 'Departure' : 'Destination'} Location`}
+          title={`Select Exact ${
+            mapSelectorFor === 'from' ? 'Departure' : 
+            mapSelectorFor === 'to' ? 'Destination' : 
+            mapSelectorFor.startsWith('stop-') ? `Stop ${parseInt(mapSelectorFor.split('-')[1]) + 1}` : 
+            'Location'
+          }`}
         />
       )}
     </div>

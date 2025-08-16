@@ -1,6 +1,7 @@
 // components/RideResults.jsx
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Route } from 'lucide-react';
 
 const RideResults = () => {
   const location = useLocation();
@@ -20,6 +21,36 @@ const RideResults = () => {
     }
   });
 
+  const renderRouteWithStops = (ride) => {
+    const locations = [ride.origin.name];
+    
+    if (ride.stops && ride.stops.length > 0) {
+      // Sort stops by routeIndex if available, otherwise by array order
+      const sortedStops = ride.stops.sort((a, b) => 
+        (a.routeIndex || 0) - (b.routeIndex || 0)
+      );
+      locations.push(...sortedStops.map(stop => stop.name));
+    }
+    
+    locations.push(ride.destination.name);
+    
+    return (
+      <div className="route-info">
+        {locations.map((location, index) => (
+          <React.Fragment key={index}>
+            <div className="location">
+              {index === 0 ? 'From' : index === locations.length - 1 ? 'To' : `Stop ${index}`}
+              <span className="location-name">{location}</span>
+            </div>
+            {index < locations.length - 1 && (
+              <div className="arrow">→</div>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="ride-results">
       <div className="results-header">
@@ -37,11 +68,7 @@ const RideResults = () => {
         {sortedRides.map((ride) => (
           <div key={ride._id} className="ride-card">
             <div className="ride-header">
-              <div className="route-info">
-                <div className="origin">{ride.origin.name}</div>
-                <div className="arrow">→</div>
-                <div className="destination">{ride.destination.name}</div>
-              </div>
+              {renderRouteWithStops(ride)}
               <div className="relevance-score">
                 Match: {Math.round(ride.relevanceScore)}%
               </div>
@@ -67,7 +94,10 @@ const RideResults = () => {
             
             {ride.stops && ride.stops.length > 0 && (
               <div className="stops-info">
-                <small>Via: {ride.stops.map(stop => stop.name).join(', ')}</small>
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <Route className="h-4 w-4" />
+                  <span>Via: {ride.stops.map(stop => stop.name).join(' → ')}</span>
+                </div>
               </div>
             )}
             

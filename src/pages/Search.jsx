@@ -39,8 +39,11 @@ export default function Search() {
   const [locationWarnings, setLocationWarnings] = useState({ from: null, to: null });
   const [selectedLocations, setSelectedLocations] = useState({ from: null, to: null });
 
-  const [triggerSearch, { data: rides = [], isFetching, error }] =
+  const [triggerSearch, { data: ridesData, isFetching, error }] =
     useLazyGetRidesQuery();
+
+  // Ensure rides is always an array
+  const rides = Array.isArray(ridesData) ? ridesData : [];
 
   // Handle location selection
   const handleLocationSelect = (field, location) => {
@@ -75,6 +78,12 @@ export default function Search() {
   const handleSearch = (e) => {
     e.preventDefault();
     
+    // Validate search form
+    if (!searchForm.from && !searchForm.to) {
+      alert("Please enter at least origin or destination");
+      return;
+    }
+    
     // Prepare search data with coordinates
     const searchData = {
       ...searchForm,
@@ -97,7 +106,12 @@ export default function Search() {
     console.log("Searching with data:", searchData);
     
     // Send all search form & filter data to backend
+    console.log("Triggering search with:", searchData);
     triggerSearch(searchData);
+    
+    // Debug: Log the response data
+    console.log("Current rides data:", ridesData);
+    console.log("Is ridesData an array?", Array.isArray(ridesData));
   };
 
   const handleBookRide = (ride) => {
@@ -405,7 +419,10 @@ export default function Search() {
           ) : error ? (
             <Card className="text-center py-12">
               <p className="text-red-600 mb-4">
-                Failed to load rides. Please try again.
+                Failed to load rides: {error?.data?.message || error?.error || 'Unknown error'}
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                This might be because the backend server is not running or there's a connection issue.
               </p>
               <Button onClick={handleSearch}>Retry</Button>
             </Card>

@@ -6,7 +6,7 @@ const baseQuery = fetchBaseQuery({
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth.token;
     if (token) {
-      headers.set("authorization", `Bearer ${token}`);
+      headers.set("x-auth-token",token);
     }
     return headers;
   },
@@ -115,7 +115,7 @@ const mockRides = [
 export const api = createApi({
   reducerPath: "api",
   baseQuery,
-  tagTypes: ["Ride", "Booking", "User", "Vehicle"],
+  tagTypes: ["Ride", "Booking", "User", "Vehicle", "Chat", "Notification"],
   endpoints: (builder) => ({
     // Rides endpoints
     getRides: builder.query({
@@ -179,15 +179,24 @@ export const api = createApi({
       invalidatesTags: ["Ride"],
     }),
 
-    // Bookings endpoints
-    createBooking: builder.mutation({
-      query: (bookingData) => ({
-        url: "/bookings",
-        method: "POST",
-        body: bookingData,
-      }),
-      invalidatesTags: ["Booking", "Ride"],
-    }),
+  // Bookings endpoints
+createBooking: builder.mutation({
+  query: (bookingData) => {
+    // const token = localStorage.getItem("token"); // or however you store JWT
+    console.log("The booking Data is ",bookingData)
+    return {
+      url: "/booking",
+      method: "POST",
+      body: bookingData,
+      headers: {
+        "Content-Type": "application/json",
+        // "Authorization": `Bearer ${token}`, // pass JWT
+      },
+    };
+  },
+  invalidatesTags: ["Booking", "Ride"],
+}),
+
 
     getUserBookings: builder.query({
       query: (userId) => `/users/${userId}/bookings`,
@@ -232,6 +241,71 @@ export const api = createApi({
       }),
       invalidatesTags: ["Vehicle"],
     }),
+
+    // Chat endpoints
+    getChatByRide: builder.query({
+      query: (rideId) => ({
+        url: `/chats/ride/${rideId}`,
+      }),
+      providesTags: ["Chat"],
+    }),
+
+    sendMessage: builder.mutation({
+      query: ({ chatId, content, messageType = 'text' }) => ({
+        url: `/chats/${chatId}/message`,
+        method: "POST",
+        body: { content, messageType },
+      }),
+      invalidatesTags: ["Chat"],
+    }),
+
+    getMyChats: builder.query({
+      query: () => ({
+        url: '/chats/my',
+      }),
+      providesTags: ["Chat"],
+    }),
+
+    markMessagesAsRead: builder.mutation({
+      query: (chatId) => ({
+        url: `/chats/${chatId}/read`,
+        method: "PUT",
+      }),
+      invalidatesTags: ["Chat"],
+    }),
+
+    // Notification endpoints
+    getMyNotifications: builder.query({
+      query: (params) => ({
+        url: '/notification/my',
+        params,
+      }),
+      providesTags: ["Notification"],
+    }),
+
+    markNotificationAsRead: builder.mutation({
+      query: (notificationId) => ({
+        url: `/notification/${notificationId}/read`,
+        method: "PUT",
+      }),
+      invalidatesTags: ["Notification"],
+    }),
+
+    markAllNotificationsAsRead: builder.mutation({
+      query: () => ({
+        url: '/notification/read-all',
+        method: "PUT",
+      }),
+      invalidatesTags: ["Notification"],
+    }),
+
+    deleteNotification: builder.mutation({
+      query: (notificationId) => ({
+        url: `/notification/${notificationId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Notification"],
+    }),
   }),
 });
 
@@ -248,4 +322,12 @@ export const {
   useUpdateUserProfileMutation,
   useGetUserVehiclesQuery,
   useAddVehicleMutation,
+  useGetChatByRideQuery,
+  useSendMessageMutation,
+  useGetMyChatsQuery,
+  useMarkMessagesAsReadMutation,
+  useGetMyNotificationsQuery,
+  useMarkNotificationAsReadMutation,
+  useMarkAllNotificationsAsReadMutation,
+  useDeleteNotificationMutation,
 } = api;

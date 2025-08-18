@@ -1,30 +1,68 @@
-// src/routes/AppRoutes.jsx
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import MainLayout from "../layout/MainLayout";
-import Home from "../pages/Home";
-import Search from "../pages/Search";
-import Publish from "../pages/Publish";
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import MainLayout from '../layout/MainLayout';
+import Home from '../pages/Home';
+import Search from '../pages/Search';
+import Publish from '../pages/Publish';
+import Login from '../pages/Login';
+import SignUp from '../pages/SignUp';
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useSelector(state => state.auth);
+
+  console.log("Checking the Protected Route", isAuthenticated);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
+
+const PublicRoute = ({ children }) => {
+  const { isAuthenticated } = useSelector(state => state.auth);
+
+  console.log("Checking the Public Route", isAuthenticated);
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
 
 const AppRoutes = () => {
-  const router = createBrowserRouter([
-    {
-      path: "/",
-      element: <MainLayout />,
-      children: [
-        { index: true, element: <Home /> },
-        { path: "search", element: <Search /> },
-        { path: "publish", element: <Publish /> },
-        { path: "profile", element: <div className="p-8 text-center">Profile Page - Coming Soon</div> },
-        { path: "rides/my-rides", element: <div className="p-8 text-center">My Rides Page - Coming Soon</div> },
-        { path: "bookings", element: <div className="p-8 text-center">Bookings Page - Coming Soon</div> },
-        { path: "vehicles", element: <div className="p-8 text-center">Vehicles Page - Coming Soon</div> },
-        { path: "login", element: <div className="p-8 text-center">Login Page - Coming Soon</div> },
-        { path: "register", element: <div className="p-8 text-center">Register Page - Coming Soon</div> },
-      ],
-    },
-  ]);
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/login" element={
+        <PublicRoute>
+          <Login />
+        </PublicRoute>
+      } />
+      <Route path="/signup" element={
+        <PublicRoute>
+          <SignUp />
+        </PublicRoute>
+      } />
 
-  return <RouterProvider router={router} />;
+      {/* Protected Routes with MainLayout */}
+      <Route path="/" element={
+        <ProtectedRoute>
+          <MainLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<Home />} />
+        <Route path="search" element={<Search />} />
+        <Route path="publish" element={<Publish />} />
+      </Route>
+
+      {/* Catch all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 };
 
 export default AppRoutes;

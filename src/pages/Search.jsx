@@ -18,6 +18,7 @@ import Card from "../components/UI/Card";
 import LocationAutocomplete from "../components/UI/LocationAutocomplete";
 import MapSelector from "../components/UI/MapSelector";
 import { isLocationTooGeneral, getLocationSuggestion } from "../utils/locationValidator";
+import { useCreateBookingMutation } from "../store/slices/api"
 
 export default function Search() {
   const [filters, setFilters] = useState({
@@ -26,6 +27,7 @@ export default function Search() {
     maxPrice: undefined,
   });
 
+  const [createBooking, {isLoading}] = useCreateBookingMutation();
   const [searchForm, setSearchForm] = useState({
     from: "",
     to: "",
@@ -115,7 +117,9 @@ export default function Search() {
   };
 
   const handleBookRide = (ride) => {
-    console.log("Booking ride:", ride);
+    console.log("Booking ride:", ride); 
+    createBooking({rideId:ride.rideId,message:ride.message
+    })
   };
 
   const handleViewRide = (ride) => {
@@ -453,7 +457,7 @@ export default function Search() {
             <div className="grid gap-6">
               {rides.map((ride) => (
                 <RideCard
-                  key={ride.id}
+                  key={ride._id}
                   ride={ride}
                   onBook={handleBookRide}
                   onView={handleViewRide}

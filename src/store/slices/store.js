@@ -1,21 +1,35 @@
-import { configureStore } from '@reduxjs/toolkit';
-import { setupListeners } from '@reduxjs/toolkit/query';
-import { api } from './api';
-import authSlice from '../slices/authSlice';
-import uiSlice from '../slices/uiSlice';
+// import { configureStore } from '@reduxjs/toolkit';
+// import { persistStore, persistReducer } from 'redux-persist';
+// import storage from 'redux-persist/lib/storage';
+// import { combineReducers } from 'redux';
+// import authReducer from './authSlice';
+// import uiReducer from './uiSlice';
+// import { api } from './api';
+// import { authApi } from './authApi';
 
-export const store = configureStore({
-  reducer: {
-    [api.reducerPath]: api.reducer,
-    auth: authSlice,
-    ui: uiSlice,
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: [api.reducerPath + '/executeQuery/pending'],
-      },
-    }).concat(api.middleware),
-});
+// const persistConfig = {
+//   key: 'root',
+//   storage,
+//   whitelist: ['auth'], // Only persist auth state
+// };
 
-setupListeners(store.dispatch);
+// const rootReducer = combineReducers({
+//   auth: authReducer,
+//   ui: uiReducer,
+//   [api.reducerPath]: api.reducer,
+//   [authApi.reducerPath]: authApi.reducer,
+// });
+
+// const persistedReducer = persistReducer(persistConfig, rootReducer);
+
+// export const store = configureStore({
+//   reducer: persistedReducer,
+//   middleware: (getDefaultMiddleware) =>
+//     getDefaultMiddleware({
+//       serializableCheck: {
+//         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+//       },
+//     }).concat(api.middleware, authApi.middleware),
+// });
+
+// export const persistor = persistStore(store);

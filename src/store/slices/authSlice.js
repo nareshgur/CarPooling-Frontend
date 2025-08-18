@@ -1,49 +1,47 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  user: {
-    id: 'current-user',
-    name: 'Current User',
-    email: 'user@example.com',
-    phone: '+1234567890',
-    rating: 4.7,
-    totalTrips: 12,
-    verificationStatus: 'verified'
-  },
-  token: 'mock-token',
-  isAuthenticated: true,
+  user: null,
+  token: null,
+  isAuthenticated: false,
   isLoading: false,
+  error: null,
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    loginStart: (state) => {
-      state.isLoading = true;
-    },
-    loginSuccess: (state, action) => {
-      state.user = action.payload.user;
-      state.token = action.payload.token;
+    setCredentials: (state, action) => {
+      const { user, token } = action.payload;
+      state.user = user;
+      state.token = token;
       state.isAuthenticated = true;
-      state.isLoading = false;
-    },
-    loginFailure: (state) => {
-      state.isLoading = false;
+      state.error = null;
     },
     logout: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
-      state.isLoading = false;
+      state.error = null;
     },
-    updateProfile: (state, action) => {
-      if (state.user) {
-        state.user = { ...state.user, ...action.payload };
+    setError: (state, action) => {
+      state.error = action.payload;
+    },
+    clearError: (state) => {
+      state.error = null;
+    },
+    // Add this new action to handle initial state restoration
+    restoreAuth: (state, action) => {
+      const { user, token } = action.payload;
+      if (user && token) {
+        state.user = user;
+        state.token = token;
+        state.isAuthenticated = true;
       }
     },
   },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, updateProfile } = authSlice.actions;
+export const { setCredentials, logout, setError, clearError, restoreAuth } = authSlice.actions;
 export default authSlice.reducer;

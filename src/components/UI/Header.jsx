@@ -4,6 +4,8 @@ import { Menu, X, User, Bell, Search, Plus, Car, Bike } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleSidebar } from '../../store/slices/uiSlice';
 import { logout } from '../../store/slices/authSlice';
+import NotificationCenter from './NotificationCenter';
+import { useGetMyNotificationsQuery, useMarkNotificationAsReadMutation, useMarkAllNotificationsAsReadMutation, useDeleteNotificationMutation } from '../../store/slices/api';
 
 export default function Header() {
   const location = useLocation();
@@ -13,15 +15,55 @@ export default function Header() {
   const { sidebarOpen } = useSelector((state) => state.ui);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
+
+
+  console.log("The user information is user",user)
+  // Fix: Properly destructure the query result and provide fallback
+  const { data: notifications = [], error: notificationsError, isLoading: notificationsLoading } = useGetMyNotificationsQuery();
+  const [markAsRead] = useMarkNotificationAsReadMutation();
+  const [markAllAsRead] = useMarkAllNotificationsAsReadMutation();
+  const [deleteNotification] = useDeleteNotificationMutation();
+
+  // Ensure notifications is always an array
+  const safeNotifications = Array.isArray(notifications) ? notifications : [];
+
   const handleLogout = () => {
     dispatch(logout());
     navigate('/');
     setUserMenuOpen(false);
   };
 
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await markAsRead(notificationId).unwrap();
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead().unwrap();
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      await deleteNotification(notificationId).unwrap();
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+    }
+  };
+
   const isActive = (path) => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
+
+  console.log('User object:', user);
+  console.log('Notifications:', notifications);
+  console.log('Safe notifications:', safeNotifications);
 
   return (
     <header className="bg-white shadow-lg border-b border-gray-100 sticky top-0 z-50">
@@ -84,22 +126,30 @@ export default function Header() {
                     <User className="h-4 w-4 text-white" />
                   </div>
                   <span className="hidden sm:block text-sm font-medium text-gray-700">
-                    {user?.name}
+                    {user?.name || user?.email || 'User'}
                   </span>
                 </button>
 
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                     <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="font-medium text-gray-900">{user?.name}</p>
-                      <p className="text-sm text-gray-500">{user?.email}</p>
+                      <p className="font-medium text-gray-900">
+                        {user?.name || user?.email || 'User'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {user?.email || 'No email'}
+                      </p>
                       <div className="flex items-center space-x-2 mt-1">
                         <div className="flex items-center">
                           <span className="text-yellow-400">★</span>
-                          <span className="text-sm text-gray-600 ml-1">{user?.rating}</span>
+                          <span className="text-sm text-gray-600 ml-1">
+                            {user?.rating || '0'}
+                          </span>
                         </div>
                         <span className="text-gray-300">•</span>
-                        <span className="text-sm text-gray-600">{user?.totalTrips} trips</span>
+                        <span className="text-sm text-gray-600">
+                          {user?.totalTrips || '0'} trips
+                        </span>
                       </div>
                     </div>
                     
@@ -134,7 +184,7 @@ export default function Header() {
                     <hr className="my-2" />
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:text-red-50"
                     >
                       Sign out
                     </button>
@@ -150,7 +200,7 @@ export default function Header() {
                   Log in
                 </Link>
                 <Link
-                  to="/register"
+                  to="/signup"
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
                   Sign up
@@ -165,6 +215,14 @@ export default function Header() {
             >
               {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
+
+            {/* Notification Center - Pass safeNotifications instead of notifications */}
+            <NotificationCenter
+              notifications={safeNotifications}
+              onMarkAsRead={handleMarkAsRead}
+              onDelete={handleDeleteNotification}
+              onMarkAllAsRead={handleMarkAllAsRead}
+            />
           </div>
         </div>
       </div>

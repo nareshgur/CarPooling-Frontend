@@ -5,6 +5,7 @@ import Card from './Card';
 import Button from './Button';
 import BookingModal from './BookingModal';
 import Chat from './Chat';
+import { useSendMessageMutation } from '../../store/slices/api';
 
 
 export default function RideCard({ ride, onBook, onView, showActions = true, currentUserId }) {
@@ -14,6 +15,7 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
   console.log("ride", ride);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [sendMessage,{isLoading}] =useSendMessageMutation();
 
   const handleBook = (ride) => {
     setShowBookingModal(true);
@@ -207,6 +209,7 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
         messages={[]}
         onSendMessage={async (messageContent) => {
           // This will be implemented with the chat API
+          sendMessage(messageContent)
           console.log('Sending message:', messageContent);
         }}
         currentUserId={currentUserId}

@@ -252,9 +252,18 @@ createBooking: builder.mutation({
 
     sendMessage: builder.mutation({
       query: ({ chatId, content, messageType = 'text' }) => ({
-        url: `/chats/${chatId}/message`,
+        url: `/chats/message`,
         method: "POST",
         body: { content, messageType },
+      }),
+      invalidatesTags: ["Chat"],
+    }),
+    
+    sendLogMessage: builder.mutation({
+      query: ({ rideId,senderId,receiverId,initiatedAt,timeStamp }) => ({
+        url: `/chats/initiate`,
+        method: "POST",
+        body: { rideId,senderId,receiverId,initiatedAt,timeStamp},
       }),
       invalidatesTags: ["Chat"],
     }),
@@ -330,4 +339,5 @@ export const {
   useMarkNotificationAsReadMutation,
   useMarkAllNotificationsAsReadMutation,
   useDeleteNotificationMutation,
+  useSendLogMessageMutation
 } = api;

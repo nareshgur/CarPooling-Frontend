@@ -5,6 +5,7 @@ import Card from './Card';
 import Button from './Button';
 import BookingModal from './BookingModal';
 import Chat from './Chat';
+import RideDetails from './RideDetails';
 
 
 export default function RideCard({ ride, onBook, onView, showActions = true, currentUserId }) {
@@ -143,7 +144,7 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
 
             {showActions && onBook && (
               <div className="flex space-x-2">
-                <Button
+                {/* <Button
                   variant="outline"
                   size="sm"
                   onClick={(e) => {
@@ -153,8 +154,8 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
                 >
                   <MessageCircle className="h-4 w-4 mr-1" />
                   Chat
-                </Button>
-                <Button
+                </Button> */}
+                {/* <Button
                   variant="outline"
                   size="sm"
                   onClick={(e) => {
@@ -163,8 +164,8 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
                   }}
                 >
                   View Details
-                </Button>
-                <Button
+                </Button> */}
+                {/* <Button
                   variant="primary"
                   size="sm"
                   onClick={(e) => {
@@ -174,7 +175,7 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
                   disabled={ride.availableSeats === 0 || ride.availableSeats === null}
                 >
                   {ride.availableSeats === 0 || ride.availableSeats === null ? 'Full' : 'Book'}
-                </Button>
+                </Button> */}
               </div>
             )}
           </div>
@@ -189,17 +190,17 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
       </Card>
 
       {/* Booking Modal */}
-      {console.log("Booking Model ride is :",ride)}
+      {/* {console.log("Booking Model ride is :",ride)}
       <BookingModal
         isOpen={showBookingModal}
         onClose={() => setShowBookingModal(false)}
         ride={ride}
         onBook={handleBookingSubmit}
         currentUserId={currentUserId}
-      />
+      /> */}
 
       {/* Chat Modal */}
-      <Chat
+      {/* <Chat
         isOpen={showChat}
         onClose={() => setShowChat(false)}
         rideId={ride._id}
@@ -210,7 +211,9 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
           console.log('Sending message:', messageContent);
         }}
         currentUserId={currentUserId}
-      />
+      /> */}
+
+      <RideDetails ride={ride}/>
     </>
   );
 }

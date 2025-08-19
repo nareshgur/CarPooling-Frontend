@@ -152,7 +152,7 @@ export const api = createApi({
 
     createRide: builder.mutation({
       query: (rideData) => {
-        console.log(rideData); // ✅ Moved inside function body
+        console.log("The Publish Ride Data before hitting backend ",rideData); // ✅ Moved inside function body
         return {
           url: "/Ride/Ride",
           method: "POST",

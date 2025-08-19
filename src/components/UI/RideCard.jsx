@@ -15,7 +15,7 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
   console.log("ride", ride);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  const [sendMessage,{isLoading}] =useSendMessageMutation();
+  // const [sendMessage,{isLoading}] =useSendMessageMutation();
 
   const handleBook = (ride) => {
     setShowBookingModal(true);

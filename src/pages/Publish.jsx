@@ -55,10 +55,12 @@ export default function Publish() {
     },
   });
 
-  const [showMapSelector, setShowMapSelector] = useState(false);
-  const [mapSelectorFor, setMapSelectorFor] = useState(null); // 'from', 'to', or 'stop-{index}'
-  const [locationWarnings, setLocationWarnings] = useState({ from: null, to: null });
-  const [stopLocationWarnings, setStopLocationWarnings] = useState({});
+const [showMapSelector, setShowMapSelector] = useState(false);
+const [mapSelectorFor, setMapSelectorFor] = useState(null); // 'from', 'to', or 'stop-{index}'
+const [locationWarnings, setLocationWarnings] = useState({ from: null, to: null });
+const [stopLocationWarnings, setStopLocationWarnings] = useState({});
+const [showRouteModal, setShowRouteModal] = useState(false);
+const [selectedRoute, setSelectedRoute] = useState(null);
 
   // Handle location selection
   const handleLocationSelect = (field, location) => {

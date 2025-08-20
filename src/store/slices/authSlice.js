@@ -1,3 +1,4 @@
+// authSlice.jsx
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
@@ -31,7 +32,6 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    // Add this new action to handle initial state restoration
     restoreAuth: (state, action) => {
       const { user, token } = action.payload;
       if (user && token) {
@@ -40,8 +40,13 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
       }
     },
+    // 🔥 New reducer
+    updateUser: (state, action) => {
+      state.user = { ...state.user, ...action.payload }; // merge old + new details
+    },
   },
 });
 
-export const { setCredentials, logout, setError, clearError, restoreAuth } = authSlice.actions;
+export const { setCredentials, logout, setError, clearError, restoreAuth, updateUser } =
+  authSlice.actions;
 export default authSlice.reducer;

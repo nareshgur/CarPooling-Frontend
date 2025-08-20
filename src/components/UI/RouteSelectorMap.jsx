@@ -3,10 +3,11 @@ import { MapContainer, TileLayer, Polyline, Marker, Popup } from "react-leaflet"
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import polyline from "@mapbox/polyline";
+import { Loader2 } from "lucide-react";
 
 const API_BASE = import.meta.env?.VITE_API_BASE || "http://localhost:3000";
 
-// Fix default Leaflet marker icons
+// Fix Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
@@ -24,14 +25,12 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState("");
 
-  // Backend proxy for geocoding
+  // Geocode helper
   const geocode = async (place) => {
     const res = await fetch(
       `${API_BASE}/api/directions/geocode?query=${encodeURIComponent(place)}`
     );
-    if (!res.ok) {
-      throw new Error(`Geocode failed for "${place}" (${res.status})`);
-    }
+    if (!res.ok) throw new Error(`Geocode failed for "${place}" (${res.status})`);
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) return null;
     return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
@@ -68,7 +67,7 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
             [originCoords.lng, originCoords.lat],
             [destCoords.lng, destCoords.lat],
           ],
-          alternatives: true,
+          preference: "fastest",
         }),
       });
 
@@ -79,57 +78,80 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
 
       const data = await res.json();
       if (!data?.routes?.length) {
-        console.warn("Directions response without routes:", data);
-        setErrMsg("No routes found for this pair. Try different locations.");
+        setErrMsg("No routes found. Try different locations.");
         return;
       }
 
       const decodedRoutes = data.routes.map((r) => {
         const coords = polyline.decode(r.geometry);
-        return coords.map(([lat, lng]) => [lat, lng]);
+        return {
+          coords: coords.map(([lat, lng]) => [lat, lng]),
+          summary: r.summary,
+          distance: (r.summary.distance / 1000).toFixed(1), // km
+          duration: Math.round(r.summary.duration / 60), // mins
+        };
       });
 
       setRoutes(decodedRoutes);
     } catch (err) {
-      console.error("Error fetching routes:", err);
       setErrMsg(err.message || "Failed to fetch routes.");
     } finally {
       setLoading(false);
     }
   };
 
+  const clearAll = () => {
+    setOrigin(null);
+    setDestination(null);
+    setRoutes([]);
+    setOriginText("");
+    setDestinationText("");
+    setSelectedIndex(null);
+    setErrMsg("");
+  };
+
   return (
-    <div>
-      <div className="flex gap-2 mb-2">
+    <div className="space-y-4">
+      {/* Input Controls */}
+      <div className="flex gap-2">
         <input
           type="text"
           value={originText}
           placeholder="Origin city"
           onChange={(e) => setOriginText(e.target.value)}
-          className="border p-2 rounded w-1/2"
+          className="border p-2 rounded-lg w-1/2 shadow-sm"
         />
         <input
           type="text"
           value={destinationText}
           placeholder="Destination city"
           onChange={(e) => setDestinationText(e.target.value)}
-          className="border p-2 rounded w-1/2"
+          className="border p-2 rounded-lg w-1/2 shadow-sm"
         />
         <button
           onClick={fetchRoutes}
           disabled={loading}
-          className="px-3 py-2 bg-blue-600 text-white rounded disabled:opacity-60"
+          className="px-3 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 disabled:opacity-60 flex items-center"
         >
-          {loading ? "Finding..." : "Find Routes"}
+          {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+          {loading ? "Finding..." : "Find"}
+        </button>
+        <button
+          onClick={clearAll}
+          className="px-3 py-2 bg-gray-300 text-black rounded-lg shadow hover:bg-gray-400"
+        >
+          Clear
         </button>
       </div>
 
-      {errMsg && <div className="text-sm text-red-600 mb-2">{errMsg}</div>}
+      {errMsg && <div className="text-sm text-red-600">{errMsg}</div>}
 
+      {/* Map */}
       <MapContainer
         center={origin || { lat: 20, lng: 78 }}
-        zoom={origin ? 8 : 5}
+        zoom={origin ? 9 : 5}
         style={{ height: "400px", width: "100%" }}
+        className="rounded-lg shadow-md"
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
@@ -144,10 +166,10 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
           </Marker>
         )}
 
-        {routes.map((coords, idx) => (
+        {routes.map((route, idx) => (
           <Polyline
             key={idx}
-            positions={coords}
+            positions={route.coords}
             color={selectedIndex === idx ? "blue" : "gray"}
             weight={selectedIndex === idx ? 6 : 4}
             opacity={selectedIndex === idx ? 0.9 : 0.5}
@@ -158,7 +180,7 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
                   onRouteSelect({
                     origin: { name: originText, ...origin },
                     destination: { name: destinationText, ...destination },
-                    routeGeometry: coords,
+                    routeGeometry: route.coords,
                   });
                 }
               },
@@ -166,6 +188,28 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
           />
         ))}
       </MapContainer>
+
+      {/* Route Details List */}
+      {routes.length > 0 && (
+        <div className="space-y-2">
+          {routes.map((r, idx) => (
+            <div
+              key={idx}
+              className={`p-3 rounded-lg shadow cursor-pointer transition ${
+                selectedIndex === idx
+                  ? "bg-blue-100 border border-blue-400"
+                  : "bg-white hover:bg-gray-100"
+              }`}
+              onClick={() => setSelectedIndex(idx)}
+            >
+              <p className="font-semibold">Route {idx + 1}</p>
+              <p className="text-sm text-gray-600">
+                {r.distance} km · {r.duration} mins
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

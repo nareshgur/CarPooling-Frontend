@@ -43,7 +43,8 @@ const RideDetails = ({ ride }) => {
   };
 
   return (
-    <div className="p-4 shadow-lg rounded-xl border border-gray-200">
+    <>
+    {driverPhone && (<div className="p-4 shadow-lg rounded-xl border border-gray-200">
       <h2 className="text-xl font-bold mb-2">Ride Details</h2>
 
       <p>
@@ -55,6 +56,10 @@ const RideDetails = ({ ride }) => {
       <p>
         <strong>Departure:</strong>{" "}
         {dateTime ? new Date(dateTime).toLocaleString() : "Not provided"}
+      </p>
+      <p>
+        <strong>Contact:</strong>{" "}
+        {driverPhone}
       </p>
       <p>
         <strong>Driver:</strong> {driverName}
@@ -70,7 +75,8 @@ const RideDetails = ({ ride }) => {
           {isLoading ? "Logging..." : "Contact via WhatsApp"}
         </button>
       )}
-    </div>
+    </div>)}
+    </>
   );
 };
 

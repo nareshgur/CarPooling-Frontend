@@ -15,6 +15,7 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
   console.log("ride", ride);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  // const [sendMessage,{isLoading}] =useSendMessageMutation();
 
   const handleBook = (ride) => {
     setShowBookingModal(true);
@@ -208,6 +209,7 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
         messages={[]}
         onSendMessage={async (messageContent) => {
           // This will be implemented with the chat API
+          sendMessage(messageContent)
           console.log('Sending message:', messageContent);
         }}
         currentUserId={currentUserId}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Check, X, Info, AlertCircle } from 'lucide-react';
+import { Bell, Check, X, Info, AlertCircle, MessageCircle } from 'lucide-react';
 import Button from './Button';
 
 const notificationIcons = {
@@ -18,12 +18,21 @@ const notificationColors = {
   ride_update: 'bg-yellow-50 border-yellow-200 text-yellow-800'
 };
 
-export default function Notification({ notification, onMarkAsRead, onDelete }) {
+export default function Notification({ notification, onMarkAsRead, onDelete, onApprove, onReject }) {
   const Icon = notificationIcons[notification.type] || Bell;
   const colors = notificationColors[notification.type] || 'bg-gray-50 border-gray-200 text-gray-800';
 
+  // WhatsApp link (assuming passenger phone is in notification.data.contactNumber)
+  const whatsappLink = notification?.data?.contactNumber
+    ? `https://wa.me/${notification.data.contactNumber}`
+    : null;
+
   return (
-    <div className={`p-4 border rounded-lg ${colors} ${!notification.isRead ? 'ring-2 ring-offset-2 ring-blue-500' : ''}`}>
+    <div
+      className={`p-4 border rounded-lg ${colors} ${
+        !notification.isRead ? 'ring-2 ring-offset-2 ring-blue-500' : ''
+      }`}
+    >
       <div className="flex items-start space-x-3">
         <Icon className={`h-5 w-5 mt-0.5 ${notification.isRead ? 'opacity-60' : ''}`} />
         <div className="flex-1 min-w-0">
@@ -32,7 +41,41 @@ export default function Notification({ notification, onMarkAsRead, onDelete }) {
           <p className="text-xs mt-2 opacity-70">
             {new Date(notification.createdAt).toLocaleString()}
           </p>
+
+          {/* ✅ Action Buttons for booking_request */}
+          {notification.type === 'booking_request' && (
+            <div className="flex gap-2 mt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-green-600 border-green-600 hover:bg-green-50"
+                onClick={() => onApprove(notification)}
+              >
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-red-600 border-red-600 hover:bg-red-50"
+                onClick={() => onReject(notification)}
+              >
+                Reject
+              </Button>
+              {whatsappLink && (
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-3 py-1 text-sm border rounded-lg text-green-700 border-green-700 hover:bg-green-50"
+                >
+                  <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+                </a>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* Mark Read + Delete */}
         <div className="flex space-x-1">
           {!notification.isRead && (
             <Button

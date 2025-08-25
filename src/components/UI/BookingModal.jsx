@@ -1,40 +1,55 @@
-import React, { useState } from 'react';
-import { X, MessageCircle, Calendar, MapPin, Clock, Users, DollarSign } from 'lucide-react';
-import Button from './Button';
-import Card from './Card';
-import Chat from './Chat';
-import {useSendMessageMutation} from '../../store/slices/api'
-export default function BookingModal({ 
-  isOpen, 
-  onClose, 
-  ride, 
-  onBook, 
-  currentUserId 
+import React, { useState } from "react";
+import {
+  X,
+  MessageCircle,
+  Calendar,
+  MapPin,
+  Clock,
+  Users,
+  DollarSign,
+} from "lucide-react";
+import Button from "./Button";
+import Card from "./Card";
+import Chat from "./Chat";
+import { useSendMessageMutation } from "../../store/slices/api";
+export default function BookingModal({
+  isOpen,
+  onClose,
+  ride,
+  onBook,
+  currentUserId,
 }) {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [isBooking, setIsBooking] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [bookingStatus, setBookingStatus] = useState(null);
 
-  const [sendMessage, {isLoading: isSendingMessage, error: sendMessageError}] = useSendMessageMutation();
+  const [
+    sendMessage,
+    { isLoading: isSendingMessage, error: sendMessageError },
+  ] = useSendMessageMutation();
 
   const handleBook = async (e) => {
     e.preventDefault();
-    if (!message.trim() || isBooking) return;
-
+    // if (!message.trim() || isBooking) return;
+    console.log("The Booking Modal is called with ride ",ride)
     setIsBooking(true);
     try {
-      const result = await onBook(ride._id, message.trim());
-      setBookingStatus('pending');
-      setMessage('');
+      const result = await onBook(ride._id, ride.driverId._id);
+      console.log("The result of the Booking Model is ",ride.driverId._id)
+      setBookingStatus("pending");
+      setMessage("");
       // Show success message
       setTimeout(() => {
         onClose();
         setBookingStatus(null);
       }, 2000);
+      await onBook(ride._id,ride.driverId._id);
+      setBookingStatus("pending");
+      setMessage("");
     } catch (error) {
-      console.error('Booking failed:', error);
-      setBookingStatus('error');
+      console.error("Booking failed:", error);
+      setBookingStatus("error");
     } finally {
       setIsBooking(false);
     }
@@ -88,9 +103,9 @@ export default function BookingModal({
                   <Clock className="h-4 w-4 text-gray-500" />
                   <span className="text-gray-600">Time:</span>
                   <span className="font-medium">
-                    {new Date(ride.dateTime).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
+                    {new Date(ride.dateTime).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </span>
                 </div>
@@ -109,17 +124,26 @@ export default function BookingModal({
 
             {/* Driver Info */}
             <div className="border border-gray-200 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">Driver Information</h3>
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Driver Information
+              </h3>
               <div className="flex items-center space-x-3">
                 <div className="bg-gradient-to-r from-blue-500 to-green-500 p-3 rounded-full">
                   <span className="text-white text-lg font-medium">
-                    {ride.driverId.name.split(' ').map(n => n[0]).join('')}
+                    {ride.driverId.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                   </span>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">{ride.driverId.name}</p>
+                  <p className="font-medium text-gray-900">
+                    {ride.driverId.name}
+                  </p>
                   <p className="text-sm text-gray-500">
-                    {ride.driver?.verificationStatus === 'verified' ? '✓ Verified Driver' : 'Unverified Driver'}
+                    {ride.driver?.verificationStatus === "verified"
+                      ? "✓ Verified Driver"
+                      : "Unverified Driver"}
                   </p>
                 </div>
               </div>
@@ -127,84 +151,46 @@ export default function BookingModal({
 
             {/* Message to Driver */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Message to Driver (Optional)
-              </label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Introduce yourself, mention pickup preferences, or ask questions..."
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                maxLength={300}
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                {message.length}/300 characters
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex space-x-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={handleOpenChat}
-                className="flex items-center space-x-2"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span>Chat First</span>
-              </Button>
+             
               <Button
                 onClick={handleBook}
-                disabled={isBooking || bookingStatus === 'pending'}
+                disabled={isBooking || bookingStatus === "pending"}
                 className="flex-1"
               >
-                {isBooking ? 'Sending Request...' : 
-                 bookingStatus === 'pending' ? 'Request Sent!' : 
-                 'Send Booking Request'}
+                {isBooking
+                  ? "Sending Request..."
+                  : bookingStatus === "pending"
+                  ? "Request Sent!"
+                  : "Send Booking Request"}
               </Button>
             </div>
 
             {/* Status Messages */}
-            {bookingStatus === 'pending' && (
+            {bookingStatus === "pending" && (
               <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
-                <p className="font-medium">Booking request sent successfully!</p>
+                <p className="font-medium">
+                  Booking request sent successfully!
+                </p>
                 <p className="text-sm mt-1">
-                  The driver will be notified and can approve or reject your request. 
-                  You'll receive a notification once they respond.
+                  The driver will be notified and can approve or reject your
+                  request. You'll receive a notification once they respond.
                 </p>
               </div>
             )}
 
-            {bookingStatus === 'error' && (
+            {bookingStatus === "error" && (
               <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
                 <p className="font-medium">Failed to send booking request</p>
-                <p className="text-sm mt-1">Please try again or contact support if the problem persists.</p>
+                <p className="text-sm mt-1">
+                  Please try again or contact support if the problem persists.
+                </p>
               </div>
             )}
           </div>
         </Card>
       </div>
 
-      {/* Chat Modal */}
-      <Chat
-        isOpen={showChat}
-        onClose={() => setShowChat(false)}
-        rideId={ride._id}
-        participants={[ride.driverId._id, currentUserId]}
-        messages={[]}
-        onSendMessage={async (messageContent) => {
-          // This will be implemented with the chat API
-          const result = await sendMessage({
-            chatId: ride.chatId,
-            content: messageContent,
-            messageType: 'text',
-          });
-          if (result.error) {
-            console.error('Failed to send message:', result.error);
-          }
-        }}
-        currentUserId={currentUserId}
-      />
+      
     </>
   );
 }

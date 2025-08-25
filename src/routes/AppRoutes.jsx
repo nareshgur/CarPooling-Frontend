@@ -58,6 +58,7 @@ const AppRoutes = () => {
       }>
         <Route index element={<Home />} />
         <Route path="/rides/my-rides" element={<MyRides/>}/>
+        <Route path="/bookings/my-bookings" element={<MyRides/>}/>
         <Route path="search" element={<Search />} />
         <Route path="publish" element={<Publish />} />
         <Route path="/profile" element={<ProfileEdit />} />

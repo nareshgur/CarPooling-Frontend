@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
-import { useUpdateUserProfileMutation } from '../../store/slices/authApi';
+import React, { useState } from "react";
+import { useSelector } from "react-redux";
+import { useUpdateUserProfileMutation } from "../../store/slices/authApi";
+import { toast } from "react-toastify"; // ✅ use react-toastify, not react-hot-toast
 
 const UpdateProfile = () => {
   const { user } = useSelector((state) => state.auth);
-  const [updateUserDetails] = useUpdateUserProfileMutation();
+  const [updateUserDetails, { isLoading }] = useUpdateUserProfileMutation();
 
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '', // but disabled
-    phone: user?.phone || '',
+    name: user?.user?.name || "",
+    email: user?.user?.email || "",
+    phone: user?.user?.phone || "",
   });
 
   const handleChange = (e) => {
@@ -19,10 +20,25 @@ const UpdateProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await updateUserDetails({
-      name: formData.name,
-      phone: formData.phone,
-    });
+
+    try {
+      const res = await updateUserDetails({
+        name: formData.name,
+        phone: formData.phone,
+      }).unwrap(); // ✅ unwrap for clean handling
+
+      toast.success("Profile updated successfully ✅", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      console.log("Update response:", res);
+    } catch (err) {
+      console.error("Update failed:", err);
+      toast.error(err?.data?.message || "Failed to update profile ❌", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
   };
 
   return (
@@ -42,7 +58,7 @@ const UpdateProfile = () => {
         <input
           name="email"
           value={formData.email}
-          disabled // ✅ make email non-editable
+          disabled
           className="border px-2 py-1 w-full rounded bg-gray-100 cursor-not-allowed"
         />
       </div>
@@ -59,9 +75,10 @@ const UpdateProfile = () => {
 
       <button
         type="submit"
-        className="bg-indigo-600 text-white px-4 py-2 rounded"
+        disabled={isLoading}
+        className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50"
       >
-        Update
+        {isLoading ? "Updating..." : "Update"}
       </button>
     </form>
   );

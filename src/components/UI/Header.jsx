@@ -168,19 +168,19 @@ export default function Header() {
                       My Rides
                     </Link>
                     <Link
-                      to="/bookings"
+                      to="/bookings/my-bookings"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       My Bookings
                     </Link>
-                    <Link
+                    {/* <Link
                       to="/vehicles"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       onClick={() => setUserMenuOpen(false)}
                     >
                       My Vehicles
-                    </Link>
+                    </Link> */}
                     <hr className="my-2" />
                     <button
                       onClick={handleLogout}

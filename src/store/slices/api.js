@@ -171,6 +171,9 @@ export const api = createApi({
       invalidatesTags: (result, error, { id }) => [{ type: "Ride", id }],
     }),
 
+
+  
+
     deleteRide: builder.mutation({
       query: (id) => ({
         url: `/rides/${id}`,
@@ -203,6 +206,11 @@ createBooking: builder.mutation({
       providesTags: ["Booking"],
     }),
 
+    fetchMyRides:builder.query({
+      query:()=>'ride/my',
+      method:'GET',
+    }),
+
     updateBookingStatus: builder.mutation({
       query: ({ id, status }) => ({
         url: `/bookings/${id}/status`,
@@ -218,14 +226,7 @@ createBooking: builder.mutation({
       providesTags: (result, error, id) => [{ type: "User", id }],
     }),
 
-    updateUserProfile: builder.mutation({
-      query: ({ id, updates }) => ({
-        url: `/users/${id}`,
-        method: "PATCH",
-        body: updates,
-      }),
-      invalidatesTags: (result, error, { id }) => [{ type: "User", id }],
-    }),
+   
 
     // Vehicles endpoints
     getUserVehicles: builder.query({
@@ -319,6 +320,7 @@ createBooking: builder.mutation({
 });
 
 export const {
+  useLazyFetchMyRidesQuery,
   useLazyGetRidesQuery,
   useGetRideByIdQuery,
   useCreateRideMutation,

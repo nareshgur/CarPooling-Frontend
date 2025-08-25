@@ -12,13 +12,17 @@ import {
   useMarkNotificationAsReadMutation,
   useMarkAllNotificationsAsReadMutation,
   useDeleteNotificationMutation,
+  useGetMyNotificationsQuery,
 } from '../../store/slices/api';
+
+import { useApproveBookingMutation,useRejectBookingMutation } from '../../store/slices/bookingApi';
 
 export default function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
   const notifications = useSelector((state) => state.notifications.list);
   const dispatch = useDispatch();
-
+  const [ApproveBooking] = useApproveBookingMutation()
+  const [RejectBooking,] = useRejectBookingMutation()
   const [markNotificationAsRead] = useMarkNotificationAsReadMutation();
   const [markAllNotificationsAsRead] = useMarkAllNotificationsAsReadMutation();
   const [deleteNotificationApi] = useDeleteNotificationMutation();
@@ -101,12 +105,23 @@ export default function NotificationCenter() {
             ) : (
               <div className="p-4 space-y-3">
                 {notifications.map((notification) => (
-                  <Notification
-                    key={notification._id}
-                    notification={notification}
-                    onMarkAsRead={() => handleMarkAsRead(notification._id)}
-                    onDelete={() => handleDelete(notification._id)}
-                  />
+                 <Notification
+                 key={notification._id}
+                 notification={notification}
+                 onMarkAsRead={() => handleMarkAsRead(notification._id)}
+                 onDelete={() => handleDelete(notification._id)}
+                 onApprove={(notif) => {
+                   console.log("✅ Approve clicked", notif);
+                   // Call backend API to approve booking
+                   ApproveBooking(notif?.data?.bookingId)
+                 }}
+                 onReject={(notif) => {
+                   console.log("❌ Reject clicked", notif);
+                   // Call backend API to reject booking
+                    RejectBooking(notif?.data?.bookingId)
+                 }}
+               />
+              
                 ))}
               </div>
             )}

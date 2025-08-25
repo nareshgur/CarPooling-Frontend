@@ -7,7 +7,7 @@ import uiReducer from './slices/uiSlice';
 import { api } from './slices/api';
 import { authApi } from './slices/authApi';
 import notificationsReducer from './slices/notificationsSlice'
-
+import { bookingApi } from './slices/bookingApi';
 
 const persistConfig = {
   key: 'root',
@@ -21,6 +21,7 @@ const rootReducer = combineReducers({
   notifications:notificationsReducer,
   [api.reducerPath]: api.reducer,
   [authApi.reducerPath]: authApi.reducer,
+  [bookingApi.reducerPath]:bookingApi.reducer
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -32,7 +33,7 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
-    }).concat(api.middleware, authApi.middleware),
+    }).concat(api.middleware, authApi.middleware,bookingApi.middleware),
 });
 
 export const persistor = persistStore(store);

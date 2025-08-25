@@ -117,8 +117,8 @@ export default function Search() {
   };
 
   const handleBookRide = (ride) => {
-    console.log("Booking ride:", ride); 
-    createBooking({rideId:ride.rideId,message:ride.message
+    console.log("Search Page is called :", ride); 
+    createBooking({rideId:ride.rideId,driverId:ride.driverId
     })
   };
 

@@ -7,6 +7,8 @@ import Search from '../pages/Search';
 import Publish from '../pages/Publish';
 import Login from '../pages/Login';
 import SignUp from '../pages/SignUp';
+import MyRides from '../pages/MyRides';
+import ProfileEdit from '../components/UI/ProfileEdit';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -55,8 +57,10 @@ const AppRoutes = () => {
         </ProtectedRoute>
       }>
         <Route index element={<Home />} />
+        <Route path="/rides/my-rides" element={<MyRides/>}/>
         <Route path="search" element={<Search />} />
         <Route path="publish" element={<Publish />} />
+        <Route path="/profile" element={<ProfileEdit />} />
       </Route>
 
       {/* Catch all */}

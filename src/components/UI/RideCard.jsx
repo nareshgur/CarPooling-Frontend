@@ -21,9 +21,10 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
     setShowBookingModal(true);
   };
 
-  const handleBookingSubmit = async (rideId, message) => {
+  const handleBookingSubmit = async (rideId, driverId) => {
+    console.log("The Ride Card is called with rideId and driverId ",rideId,driverId)
     try {
-      return await onBook({rideId, message});
+      return await onBook({rideId, driverId});
     } catch (error) {
       console.error("Booking failed:", error);
       alert("Something went wrong while booking. Please try again.");
@@ -166,7 +167,7 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
                 >
                   View Details
                 </Button> */}
-                {/* <Button
+                <Button
                   variant="primary"
                   size="sm"
                   onClick={(e) => {
@@ -176,7 +177,7 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
                   disabled={ride.availableSeats === 0 || ride.availableSeats === null}
                 >
                   {ride.availableSeats === 0 || ride.availableSeats === null ? 'Full' : 'Book'}
-                </Button> */}
+                </Button>
               </div>
             )}
           </div>
@@ -190,30 +191,14 @@ export default function RideCard({ ride, onBook, onView, showActions = true, cur
         </div>
       </Card>
 
-      {/* Booking Modal */}
-      {/* {console.log("Booking Model ride is :",ride)}
+      {console.log("Booking Model ride is :",ride)}
       <BookingModal
         isOpen={showBookingModal}
         onClose={() => setShowBookingModal(false)}
         ride={ride}
         onBook={handleBookingSubmit}
         currentUserId={currentUserId}
-      /> */}
-
-      {/* Chat Modal */}
-      {/* <Chat
-        isOpen={showChat}
-        onClose={() => setShowChat(false)}
-        rideId={ride._id}
-        participants={[ride.driverId?._id, currentUserId]}
-        messages={[]}
-        onSendMessage={async (messageContent) => {
-          // This will be implemented with the chat API
-          sendMessage(messageContent)
-          console.log('Sending message:', messageContent);
-        }}
-        currentUserId={currentUserId}
-      /> */}
+      />
 
       <RideDetails ride={ride}/>
     </>

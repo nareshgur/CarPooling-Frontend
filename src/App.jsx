@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { useSocket } from "./utils/websocket";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import {useEffect} from 'react'
 
 function App() {
   const user = useSelector((state) => state.auth.user);
@@ -14,7 +15,7 @@ function App() {
   const socket = useSocket(user?.id);
 
   // Add socket status monitoring
-  React.useEffect(() => {
+  useEffect(() => {
     if (socket) {
       socket.on("connect", () => {
         console.log("✅ App: WebSocket connected successfully");

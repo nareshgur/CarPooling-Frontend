@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Calendar, Clock, Users, DollarSign, Car, Bike, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { useSelector } from "react-redux";
 import Button from "../components/UI/Button";
-import RouteSelectorMap from "../components/UI/RouteSelectorMap"; // ✅ Your new map component
+import RouteSelectorMap from "../components/UI/RouteSelectorMap"; 
 import { useCreateRideMutation } from "../store/slices/api";
 
 const Publish = () => {

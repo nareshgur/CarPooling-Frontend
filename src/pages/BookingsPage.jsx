@@ -1,5 +1,5 @@
 import React from "react";
-import { useGetMyBookingsQuery } from "../store/slices/api";
+import  {useGetUserBookingsQuery} from "../store/slices/api";
 
 
 export default function BookingsPage() {
@@ -7,8 +7,10 @@ export default function BookingsPage() {
         data: bookings = [],
         error,
         isLoading,
-    } = useGetMyBookingsQuery();
+    } = useGetUserBookingsQuery();
 
+
+    console.log("The bookings are",bookings)
     if (isLoading) {
         return <div className="p-6 text-gray-600">Loading your bookings...</div>;
     }
@@ -39,18 +41,18 @@ export default function BookingsPage() {
                         className="border rounded-lg p-4 shadow-sm bg-white"
                     >
                         <p className="font-medium text-gray-800">
-                            Ride from {booking.pickup} → {booking.destination}
+                            Ride from :-   {booking.rideId.origin.name} → {booking.rideId.destination.name}
                         </p>
                         <p className="text-sm text-gray-600">
-                            Date: {new Date(booking.date).toLocaleDateString()}
+                            Date: {new Date(booking.createdAt).toLocaleDateString()}
                         </p>
                         <p className="text-sm text-gray-600">
                             Status:{" "}
                             <span
-                                className={`font-semibold ${booking.status === "confirmed"
+                                className={`font-semibold ${booking.status === "Approved"
                                         ? "text-green-600"
-                                        : booking.status === "pending"
-                                            ? "text-yellow-600"
+                                        : booking.status === "Pending"
+                                            ? "text-blue-600"
                                             : "text-red-600"
                                     }`}
                             >

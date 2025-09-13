@@ -1,6 +1,6 @@
 // authApi.js
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { updateUser } from "./authSlice"; // <-- if you want to sync local state after update
+import { setCredentials, updateUser } from "./authSlice"; // <-- if you want to sync local state after update
 
 export const authApi = createApi({
   reducerPath: "authApi",
@@ -32,7 +32,20 @@ export const authApi = createApi({
         body: credentials,
       }),
       invalidatesTags: ["Auth"],
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          // data = { message, data: { token, user } }
+          dispatch(setCredentials({ 
+            user: data.data.user, 
+            token: data.data.token 
+          }));
+        } catch (err) {
+          console.error("Login failed:", err);
+        }
+      },
     }),
+    
 
     getProfile: builder.query({
       query: () => "/user/profile",
@@ -50,7 +63,7 @@ export const authApi = createApi({
         try {
           const { data } = await queryFulfilled;
           // ✅ update local Redux state if needed
-          dispatch(updateUser(data));
+          dispatch(updateUser(data.user));
         } catch (err) {
           console.error("Update profile failed:", err);
         }

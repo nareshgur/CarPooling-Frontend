@@ -1,17 +1,54 @@
-import React, { useState } from "react";
-import { useSelector } from "react-redux";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useUpdateUserProfileMutation } from "../../store/slices/authApi";
-import { toast } from "react-toastify"; // ✅ use react-toastify, not react-hot-toast
+import { toast } from "react-toastify";
+import axios from "axios";
+import { updateUser } from "../../store/slices/authSlice";
 
 const UpdateProfile = () => {
-  const { user } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
   const [updateUserDetails, { isLoading }] = useUpdateUserProfileMutation();
+  const dispatch = useDispatch();
+  // ✅ Keep API profile response in state
+  const [profile, setProfile] = useState(null);
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const ltoken = localStorage.getItem("token");
+        console.log("The localstorage token is ", ltoken);
+
+        const res = await axios.get("http://localhost:3000/api/user/profile", {
+          headers: { "x-auth-token": ltoken },
+        });
+
+        console.log("Profile response ", res.data);
+        setProfile(res.data.user); 
+        dispatch(updateUser(res.data.user))
+
+      } catch (err) {
+        console.log("Error fetching profile", err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  // ✅ Sync profile → formData
   const [formData, setFormData] = useState({
-    name: user?.user?.name || "",
-    email: user?.user?.email || "",
-    phone: user?.user?.phone || "",
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
   });
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+      });
+    }
+  }, [profile]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,12 +57,11 @@ const UpdateProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const res = await updateUserDetails({
         name: formData.name,
         phone: formData.phone,
-      }).unwrap(); // ✅ unwrap for clean handling
+      }).unwrap();
 
       toast.success("Profile updated successfully ✅", {
         position: "top-right",
@@ -40,6 +76,11 @@ const UpdateProfile = () => {
       });
     }
   };
+
+  // ✅ Avoid rendering until profile is fetched
+  if (!profile) {
+    return <p>Loading profile...</p>;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto">

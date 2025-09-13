@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import polyline from "@mapbox/polyline";
 import { Loader2 } from "lucide-react";
+import {toast} from 'react-toastify'
 
 const API_BASE = import.meta.env?.VITE_API_BASE || "http://localhost:3000";
 
@@ -23,6 +24,7 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
   const [routes, setRoutes] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [loading, setLoading] = useState(false);
+  
   const [errMsg, setErrMsg] = useState("");
 
   // Geocode helper
@@ -44,7 +46,9 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
 
     try {
       if (!originText.trim() || !destinationText.trim()) {
-        setErrMsg("Please enter both origin and destination.");
+        const msg = "Please enter both origin and destination."
+        setErrMsg(msg);
+        toast.error(msg)
         return;
       }
 
@@ -52,7 +56,9 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
       const destCoords = await geocode(destinationText.trim());
 
       if (!originCoords || !destCoords) {
-        setErrMsg("Could not find coordinates for one of the locations.");
+        const msg = "Could not find coordinates for one of the locations."
+        setErrMsg(msg);
+        toast.error(msg)
         return;
       }
 
@@ -71,14 +77,26 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
         }),
       });
 
+      // const result = await res.json()
+      console.log("The routes that we fetched fromt the backend is",res)
+
       if (!res.ok) {
+        let useMsg = "Something went wrong while fetching directions"
+
+        if(res.status===404) useMsg = "No route could be found. Please try different locations."
+
+        if(res.status===500) useMsg = "Server error. Please try again later."
         const text = await res.text().catch(() => "");
-        throw new Error(`Backend directions failed (${res.status}): ${text}`);
+        // const msg = `Something went wrong !... `;
+        toast.error(useMsg)
+        throw new Error(`(${res.status}): ${text}`);
       }
 
       const data = await res.json();
       if (!data?.routes?.length) {
-        setErrMsg("No routes found. Try different locations.");
+        const msg = "No routes found. Try different locations."
+        setErrMsg(msg);
+        toast.warning(msg)
         return;
       }
 
@@ -91,10 +109,13 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
           duration: Math.round(r.summary.duration / 60), // mins
         };
       });
-
+      
+      console.log("The decoded routes are",decodedRoutes)
       setRoutes(decodedRoutes);
     } catch (err) {
-      setErrMsg(err.message || "Failed to fetch routes.");
+      const msg = err.message || "Failed to fetch routes."
+      setErrMsg(msg);
+      // toast.error(msg)
     } finally {
       setLoading(false);
     }
@@ -144,7 +165,7 @@ const RouteSelectorMap = ({ onRouteSelect }) => {
         </button>
       </div>
 
-      {errMsg && <div className="text-sm text-red-600">{errMsg}</div>}
+      {/* {errMsg && <div className="text-sm text-red-600">{errMsg}</div>} */}
 
       {/* Map */}
       <MapContainer

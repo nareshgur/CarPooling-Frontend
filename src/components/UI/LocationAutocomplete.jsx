@@ -18,6 +18,8 @@ async function nominatimSearch(query) {
   });
   if (!res.ok) return [];
   const data = await res.json();
+
+  console.log("The nominatim Search result is",res)
   return data.map((p) => ({
     name: p.name || (p.display_name ? p.display_name.split(",")[0] : query),
     address: p.display_name,
@@ -60,7 +62,7 @@ const LocationAutocomplete = ({
   onLocationSelect,
   placeholder = "Search for a location...",
   label,
-  required = false,
+  required = true,
   className = "",
   showCurrentLocation = true,
 }) => {

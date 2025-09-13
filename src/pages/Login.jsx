@@ -90,10 +90,14 @@ const Login = () => {
           email: formData.email,
           // You can add more user info here or fetch it separately
           id: result.data.user._id,
+          name:result.data.user.name,
+          phone:result.data.user.phone
           
         };
 
-        dispatch(setCredentials({ user, token }));
+        dispatch(setCredentials({user, token }));
+        localStorage.setItem("token",token)
+        localStorage.setItem("user",JSON.stringify(user))
         console.log("The user and token that are dispatched are ",user,token)
         navigate("/");
       }
@@ -292,14 +296,14 @@ const Login = () => {
               </label>
             </div>
 
-            <div className="text-sm">
+            {/* <div className="text-sm">
               <a
                 href="#"
                 className="font-medium text-indigo-600 hover:text-indigo-500"
               >
                 Forgot your password?
               </a>
-            </div>
+            </div> */}
           </div>
 
           <div>

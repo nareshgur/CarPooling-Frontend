@@ -7,18 +7,20 @@ import {
   Car,
   Bike,
   SlidersHorizontal,
+  PanelRightInactiveIcon,
 } from "lucide-react";
-import {
-  useLazyGetRidesQuery,
-} from "../store/slices/api";
+import { useLazyGetRidesQuery } from "../store/slices/api";
 import RideCard from "../components/UI/RideCard";
 import Button from "../components/UI/Button";
 import Input from "../components/UI/Input";
 import Card from "../components/UI/Card";
 import LocationAutocomplete from "../components/UI/LocationAutocomplete";
 import MapSelector from "../components/UI/MapSelector";
-import { isLocationTooGeneral, getLocationSuggestion } from "../utils/locationValidator";
-import { useCreateBookingMutation } from "../store/slices/api"
+import {
+  isLocationTooGeneral,
+  getLocationSuggestion,
+} from "../utils/locationValidator";
+import { useCreateBookingMutation } from "../store/slices/api";
 
 export default function Search() {
   const [filters, setFilters] = useState({
@@ -27,7 +29,12 @@ export default function Search() {
     maxPrice: undefined,
   });
 
-  const [createBooking, {isLoading}] = useCreateBookingMutation();
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [allRides, setAllRides] = useState([]);
+  const [hasMore, setHasMore] = useState(false);
+
+  const [createBooking, { isLoading }] = useCreateBookingMutation();
   const [searchForm, setSearchForm] = useState({
     from: "",
     to: "",
@@ -38,35 +45,46 @@ export default function Search() {
   const [showFilters, setShowFilters] = useState(false);
   const [showMapSelector, setShowMapSelector] = useState(false);
   const [mapSelectorFor, setMapSelectorFor] = useState(null);
-  const [locationWarnings, setLocationWarnings] = useState({ from: null, to: null });
-  const [selectedLocations, setSelectedLocations] = useState({ from: null, to: null });
+  const [locationWarnings, setLocationWarnings] = useState({
+    from: null,
+    to: null,
+  });
+  const [selectedLocations, setSelectedLocations] = useState({
+    from: null,
+    to: null,
+  });
 
   const [triggerSearch, { data: ridesData, isFetching, error }] =
     useLazyGetRidesQuery();
 
-  // Ensure rides is always an array
-  const rides = Array.isArray(ridesData) ? ridesData : [];
-
-  // Handle location selection
-  const handleLocationSelect = (field, location) => {
-    if (!location) {
-      setSearchForm(prev => ({ ...prev, [field]: "" }));
-      setSelectedLocations(prev => ({ ...prev, [field]: null }));
-      setLocationWarnings(prev => ({ ...prev, [field]: null }));
-      return;
-    }
-
-    setSearchForm(prev => ({ ...prev, [field]: location.name }));
-    setSelectedLocations(prev => ({ ...prev, [field]: location }));
-
-    // Check if location is too general
-    if (isLocationTooGeneral(location)) {
-      const suggestion = getLocationSuggestion(location);
-      setLocationWarnings(prev => ({ ...prev, [field]: suggestion }));
-    } else {
-      setLocationWarnings(prev => ({ ...prev, [field]: null }));
-    }
-  };
+    const handleLocationSelect = (field, location) => {
+      console.log("The location from the map is reached to Search ", location);
+    
+      if (!location) {
+        console.log("Entered the null block inside the Search Page ");
+        setSearchForm((prev) => ({ ...prev, [field]: "" }));
+        setSelectedLocations((prev) => ({ ...prev, [field]: null }));
+        setLocationWarnings((prev) => ({ ...prev, [field]: "Please select a valid location" }));
+        return;
+      }
+    
+      // ✅ When location is valid
+      setSearchForm((prev) => ({
+        ...prev,
+        [field]: location.address || location.name, // decide whether to use address or name
+      }));
+    
+      setSelectedLocations((prev) => ({
+        ...prev,
+        [field]: location, // storing full object for reuse
+      }));
+    
+      setLocationWarnings((prev) => ({
+        ...prev,
+        [field]: null, // clear warnings
+      }));
+    };
+    
 
   // Handle map selection
   const handleMapSelection = (location) => {
@@ -77,49 +95,86 @@ export default function Search() {
     setMapSelectorFor(null);
   };
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
-    
-    // Validate search form
+
     if (!searchForm.from && !searchForm.to) {
       alert("Please enter at least origin or destination");
       return;
     }
-    
-    // Prepare search data with coordinates
+
     const searchData = {
       ...searchForm,
       ...filters,
+      page: 1,
+      limit,
     };
 
-    // Add coordinates if available
-    if (selectedLocations.from && selectedLocations.from.coordinates) {
+    if (selectedLocations.from?.coordinates) {
       searchData.lat = selectedLocations.from.coordinates.lat;
       searchData.lng = selectedLocations.from.coordinates.lng;
-      searchData.maxDistance = 50000; // 50km radius
+      searchData.maxDistance = 50000;
     }
 
-    if (selectedLocations.to && selectedLocations.to.coordinates) {
+    if (selectedLocations.to?.coordinates) {
       searchData.destLat = selectedLocations.to.coordinates.lat;
       searchData.destLng = selectedLocations.to.coordinates.lng;
-      searchData.destMaxDistance = 50000; // 50km radius
+      searchData.destMaxDistance = 50000;
     }
 
-    console.log("Searching with data:", searchData);
-    
-    // Send all search form & filter data to backend
-    console.log("Triggering search with:", searchData);
-    triggerSearch(searchData);
-    
-    // Debug: Log the response data
-    console.log("Current rides data:", ridesData);
-    console.log("Is ridesData an array?", Array.isArray(ridesData));
+    const { data } = await triggerSearch(searchData);
+    console.log("Teh data we received is after applying the pagination ", data);
+
+    if (data) {
+      setAllRides(data.rides.rides);
+      const totalPages = Math.ceil(
+        data.rides.pagination?.totalResults / data.rides.pagination?.pageSize
+      );
+      setHasMore(data.rides.pagination?.currentPage < totalPages);
+      setPage(1);
+    }
+  };
+
+  console.log("The all rides are",allRides)
+
+  const handleLoadMore = async () => {
+    const nextPage = page + 1;
+
+    const searchData = {
+      ...searchForm,
+      ...filters,
+      page: nextPage,
+      limit,
+    };
+
+    if (selectedLocations.from?.coordinates) {
+      searchData.lat = selectedLocations.from.coordinates.lat;
+      searchData.lng = selectedLocations.from.coordinates.lng;
+      searchData.maxDistance = 50000;
+    }
+
+    if (selectedLocations.to?.coordinates) {
+      searchData.destLat = selectedLocations.to.coordinates.lat;
+      searchData.destLng = selectedLocations.to.coordinates.lng;
+      searchData.destMaxDistance = 50000;
+    }
+
+    const { data } = await triggerSearch(searchData);
+
+    if (data) {
+      setAllRides((prev) => [...prev, ...data.rides.rides]); // append
+      // setHasMore(data.pagination?.hasNextPage || false);
+      const totalPages = Math.ceil(
+        data.rides.pagination.totalResults / data.rides.pagination.pageSize
+      );
+      setHasMore(data.pagination?.currentPage < totalPages);
+      setPage(nextPage);
+    }
   };
 
   const handleBookRide = (ride) => {
-    console.log("Search Page is called :", ride); 
-    createBooking({rideId:ride.rideId,driverId:ride.driverId
-    })
+    console.log("Search Page is called :", ride);
+    createBooking({ rideId: ride.rideId, driverId: ride.driverId });
   };
 
   const handleViewRide = (ride) => {
@@ -148,24 +203,38 @@ export default function Search() {
                   label="From"
                   placeholder="Departure location"
                   value={searchForm.from}
-                  onChange={(e) => setSearchForm(prev => ({ ...prev, from: e.target.value }))}
-                  onLocationSelect={(location) => handleLocationSelect('from', location)}
+                  onChange={(e) =>
+                    setSearchForm((prev) => ({ ...prev, from: e.target.value }))
+                  }
+                  onLocationSelect={(location) =>
+                    handleLocationSelect("from", location)
+                  }
                   showCurrentLocation={true}
                 />
-                
+
                 {locationWarnings.from && (
                   <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <div className="flex-shrink-0">
-                      <svg className="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      <svg
+                        className="h-4 w-4 text-yellow-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs text-yellow-800">{locationWarnings.from}</p>
+                      <p className="text-xs text-yellow-800">
+                        {locationWarnings.from}
+                      </p>
                       <button
                         type="button"
                         onClick={() => {
-                          setMapSelectorFor('from');
+                          setMapSelectorFor("from");
                           setShowMapSelector(true);
                         }}
                         className="text-xs text-yellow-800 underline hover:text-yellow-900"
@@ -182,24 +251,38 @@ export default function Search() {
                   label="To"
                   placeholder="Destination location"
                   value={searchForm.to}
-                  onChange={(e) => setSearchForm(prev => ({ ...prev, to: e.target.value }))}
-                  onLocationSelect={(location) => handleLocationSelect('to', location)}
+                  onChange={(e) =>
+                    setSearchForm((prev) => ({ ...prev, to: e.target.value }))
+                  }
+                  onLocationSelect={(location) =>
+                    handleLocationSelect("to", location)
+                  }
                   showCurrentLocation={true}
                 />
-                
+
                 {locationWarnings.to && (
                   <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <div className="flex-shrink-0">
-                      <svg className="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      <svg
+                        className="h-4 w-4 text-yellow-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs text-yellow-800">{locationWarnings.to}</p>
+                      <p className="text-xs text-yellow-800">
+                        {locationWarnings.to}
+                      </p>
                       <button
                         type="button"
                         onClick={() => {
-                          setMapSelectorFor('to');
+                          setMapSelectorFor("to");
                           setShowMapSelector(true);
                         }}
                         className="text-xs text-yellow-800 underline hover:text-yellow-900"
@@ -250,90 +333,9 @@ export default function Search() {
                 Search Rides
               </Button>
 
-              <Button
-                type="button"
-                variant="outline"
-                icon={SlidersHorizontal}
-                onClick={() => setShowFilters(!showFilters)}
-                className="sm:w-auto"
-              >
-                {showFilters ? "Hide" : "Show"} Filters
-              </Button>
             </div>
 
-            {/* Advanced Filters */}
-            {showFilters && (
-              <Card className="bg-gray-50" padding="md">
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900">
-                    Advanced Filters
-                  </h3>
-
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Vehicle Type
-                      </label>
-                      <select
-                        value={filters.vehicleType}
-                        onChange={(e) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            vehicleType: e.target.value,
-                          }))
-                        }
-                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      >
-                        <option value="all">All Vehicles</option>
-                        <option value="car">Cars Only</option>
-                        <option value="bike">Bikes Only</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Max Price per Seat
-                      </label>
-                      <input
-                        type="number"
-                        placeholder="Any price"
-                        value={filters.maxPrice || ""}
-                        onChange={(e) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            maxPrice: e.target.value
-                              ? parseInt(e.target.value)
-                              : undefined,
-                          }))
-                        }
-                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Sort By
-                      </label>
-                      <select
-                        value={filters.sortBy}
-                        onChange={(e) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            sortBy: e.target.value,
-                          }))
-                        }
-                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      >
-                        <option value="departure">Departure Time</option>
-                        <option value="price">Price (Low to High)</option>
-                        <option value="duration">Duration</option>
-                        <option value="rating">Driver Rating</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )}
+          
           </form>
         </Card>
 
@@ -352,7 +354,7 @@ export default function Search() {
             <span>All Rides</span>
           </button>
 
-          <button
+          {/* <button
             onClick={() =>
               setFilters((prev) => ({ ...prev, vehicleType: "car" }))
             }
@@ -364,9 +366,9 @@ export default function Search() {
           >
             <Car className="h-4 w-4" />
             <span>Cars</span>
-          </button>
+          </button> */}
 
-          <button
+          {/* <button
             onClick={() =>
               setFilters((prev) => ({ ...prev, vehicleType: "bike" }))
             }
@@ -378,16 +380,16 @@ export default function Search() {
           >
             <Bike className="h-4 w-4" />
             <span>Bikes</span>
-          </button>
+          </button> */}
         </div>
 
         {/* Results */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-gray-900">
-              {rides.length} rides found
+              {allRides?.length} rides found
             </h2>
-            {rides.length > 0 && (
+            {allRides?.length > 0 && (
               <div className="flex items-center space-x-2 text-sm text-gray-500">
                 <span>Sorted by {filters.sortBy}</span>
               </div>
@@ -423,14 +425,16 @@ export default function Search() {
           ) : error ? (
             <Card className="text-center py-12">
               <p className="text-red-600 mb-4">
-                Failed to load rides: {error?.data?.message || error?.error || 'Unknown error'}
+                Failed to load rides:{" "}
+                {error?.data?.message || error?.error || "Unknown error"}
               </p>
               <p className="text-sm text-gray-500 mb-4">
-                This might be because the backend server is not running or there's a connection issue.
+                This might be because the backend server is not running or
+                there's a connection issue.
               </p>
               <Button onClick={handleSearch}>Retry</Button>
             </Card>
-          ) : rides.length === 0 ? (
+          ) : (allRides?.length === 0 || allRides === undefined) ? (
             <Card className="text-center py-12">
               <div className="space-y-4">
                 <SearchIcon className="h-16 w-16 text-gray-400 mx-auto" />
@@ -455,7 +459,7 @@ export default function Search() {
             </Card>
           ) : (
             <div className="grid gap-6">
-              {rides.map((ride) => (
+              {allRides?.map((ride) => (
                 <RideCard
                   key={ride._id}
                   ride={ride}
@@ -463,6 +467,14 @@ export default function Search() {
                   onView={handleViewRide}
                 />
               ))}
+
+              {hasMore && (
+                <div className="flex justify-center mt-6">
+                  <Button onClick={handleLoadMore} variant="outline">
+                    See More
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -471,13 +483,17 @@ export default function Search() {
       {/* Map Selector Modal */}
       {showMapSelector && (
         <MapSelector
-          initialLocation={mapSelectorFor ? selectedLocations[mapSelectorFor] : null}
+          initialLocation={
+            mapSelectorFor ? selectedLocations[mapSelectorFor] : null
+          }
           onLocationSelect={handleMapSelection}
           onClose={() => {
             setShowMapSelector(false);
             setMapSelectorFor(null);
           }}
-          title={`Select Exact ${mapSelectorFor === 'from' ? 'Departure' : 'Destination'} Location`}
+          title={`Select Exact ${
+            mapSelectorFor === "from" ? "Departure" : "Destination"
+          } Location`}
         />
       )}
     </div>

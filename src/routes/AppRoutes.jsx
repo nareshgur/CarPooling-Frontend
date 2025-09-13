@@ -9,6 +9,7 @@ import Login from '../pages/Login';
 import SignUp from '../pages/SignUp';
 import MyRides from '../pages/MyRides';
 import ProfileEdit from '../components/UI/ProfileEdit';
+import BookingsPage from '../pages/BookingsPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -58,7 +59,7 @@ const AppRoutes = () => {
       }>
         <Route index element={<Home />} />
         <Route path="/rides/my-rides" element={<MyRides/>}/>
-        <Route path="/bookings/my-bookings" element={<MyRides/>}/>
+        <Route path="/bookings/my-bookings" element={<BookingsPage/>}/>
         <Route path="search" element={<Search />} />
         <Route path="publish" element={<Publish />} />
         <Route path="/profile" element={<ProfileEdit />} />

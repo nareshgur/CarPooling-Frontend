@@ -1,5 +1,8 @@
 // Utility to check if a location is too general (like a district or large area)
 export const isLocationTooGeneral = (location) => {
+
+
+  console.log("The location details received to the too General Method is ",location)
   if (!location || !location.address) return true;
 
   const address = location.address.toLowerCase();

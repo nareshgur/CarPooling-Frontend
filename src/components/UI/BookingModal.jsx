@@ -30,30 +30,30 @@ export default function BookingModal({
   ] = useSendMessageMutation();
 
   const handleBook = async (e) => {
-    e.preventDefault();
-    // if (!message.trim() || isBooking) return;
-    console.log("The Booking Modal is called with ride ",ride)
-    setIsBooking(true);
-    try {
-      const result = await onBook(ride._id, ride.driverId._id);
-      console.log("The result of the Booking Model is ",ride.driverId._id)
-      setBookingStatus("pending");
-      setMessage("");
-      // Show success message
-      setTimeout(() => {
-        onClose();
-        setBookingStatus(null);
-      }, 2000);
-      await onBook(ride._id,ride.driverId._id);
-      setBookingStatus("pending");
-      setMessage("");
-    } catch (error) {
-      console.error("Booking failed:", error);
-      setBookingStatus("error");
-    } finally {
-      setIsBooking(false);
-    }
-  };
+  e.preventDefault();
+  console.log("The Booking Modal is called with ride ", ride);
+  setIsBooking(true);
+  try {
+    const result = await onBook(ride._id, ride.driverId._id);
+    console.log("The result of the Booking Model is ", result);
+
+    setBookingStatus("pending");
+    setMessage("");
+
+    // Show success message then close modal
+    setTimeout(() => {
+      onClose();
+      setBookingStatus(null);
+    }, 2000);
+
+  } catch (error) {
+    console.error("Booking failed:", error);
+    setBookingStatus("error");
+  } finally {
+    setIsBooking(false);
+  }
+};
+
 
   const handleOpenChat = () => {
     setShowChat(true);
